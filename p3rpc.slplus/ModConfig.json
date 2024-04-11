@@ -1,0 +1,21 @@
+{
+  "ModId": "p3rpc.slplus",
+  "ModName": "Social Links Plus",
+  "ModAuthor": "Rirurin",
+  "ModVersion": "1.0.0",
+  "ModDescription": "Add extra social link functionality, including adding new social links",
+  "ModDll": "p3rpc.slplus.dll",
+  "ModIcon": "Preview.png",
+  "ModR2RManagedDll32": "x86/p3rpc.slplus.dll",
+  "ModR2RManagedDll64": "x64/p3rpc.slplus.dll",
+  "ModNativeDll32": "",
+  "ModNativeDll64": "",
+  "IsLibrary": false,
+  "ReleaseMetadataFileName": "p3rpc.slplus.ReleaseMetadata.json",
+  "PluginData": {},
+  "IsUniversalMod": false,
+  "ModDependencies": [ "reloaded.sharedlib.hooks" ],
+  "OptionalDependencies": [],
+  "SupportedAppId": [],
+  "ProjectUrl": ""
+}
