@@ -36,8 +36,18 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="p3rpc.nativetypes.Interfaces" Version="1.2.7" />
+    <PackageReference Include="p3rpc.classconstructor.Interfaces" Version="1.2.0" />
+    <PackageReference Include="p3rpc.commonmodutils" Version="1.4.0" />
+    <PackageReference Include="p3rpc.nativetypes.Interfaces" Version="1.4.4" />
+    <PackageReference Include="Reloaded.Memory" Version="9.4.1" />
     <PackageReference Include="Reloaded.Mod.Interfaces" Version="2.4.0" ExcludeAssets="runtime" />
     <PackageReference Include="Reloaded.SharedLib.Hooks" Version="1.9.0" />
+    <PackageReference Include="YamlDotNet" Version="15.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\include\SharedScans\SharedScans.Interfaces\SharedScans.Interfaces.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="SocialLink\" />
   </ItemGroup>
 </Project>

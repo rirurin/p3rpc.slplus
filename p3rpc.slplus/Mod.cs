@@ -1,7 +1,16 @@
-﻿using p3rpc.slplus.Configuration;
+﻿using p3rpc.classconstructor.Interfaces;
+using p3rpc.commonmodutils;
+using p3rpc.nativetypes.Interfaces;
+using p3rpc.slplus.Configuration;
+using p3rpc.slplus.Event;
+using p3rpc.slplus.Modules;
 using p3rpc.slplus.Template;
 using Reloaded.Hooks.ReloadedII.Interfaces;
+using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
+using Reloaded.Mod.Interfaces.Internal;
+using SharedScans.Interfaces;
+using System.Diagnostics;
 
 namespace p3rpc.slplus
 {
@@ -40,6 +49,10 @@ namespace p3rpc.slplus
         /// The configuration of the currently executing mod.
         /// </summary>
         private readonly IModConfig _modConfig;
+        public static readonly string SL_YAML_PATH = "Social";
+
+        private SocialLinkContext _context;
+        private ModuleRuntime<SocialLinkContext> _runtime;
 
         public Mod(ModContext context)
         {
@@ -50,23 +63,71 @@ namespace p3rpc.slplus
             _configuration = context.Configuration;
             _modConfig = context.ModConfig;
 
+            var process = Process.GetCurrentProcess().MainModule;
+            if (process == null) throw new Exception($"[{_modConfig.ModName}] Process is null");
+            var baseAddress = process.BaseAddress;
+            if (_hooks == null) throw new Exception($"[{_modConfig.ModName}] Could not get controller for Reloaded hooks");
+            var startupScanner = GetDependency<IStartupScanner>("Reloaded Startup Scanner");
+            var sharedScans = GetDependency<ISharedScans>("Shared Scans");
+            var memoryMethods = GetDependency<IMemoryMethods>("P3RE Native Types (Memory Methods)");
 
-            // For more information about this template, please see
-            // https://reloaded-project.github.io/Reloaded-II/ModTemplate/
+            var classMethods = GetDependency<IClassMethods>("Class Constructor (Class Methods)");
+            var objectMethods = GetDependency<IObjectMethods>("Class Constructor (Object Methods)");
 
-            // If you want to implement e.g. unload support in your mod,
-            // and some other neat features, override the methods in ModBase.
+            Utils utils = new(startupScanner, _logger, _hooks, baseAddress, _modConfig.ModName, System.Drawing.Color.PaleTurquoise);
+            _context = new(
+                baseAddress, _configuration, _logger, startupScanner, _hooks, 
+                _modLoader.GetDirectoryForModId(_modConfig.ModId), utils, 
+                new Reloaded.Memory.Memory(), sharedScans, _modConfig.ModId, classMethods, objectMethods, memoryMethods);
+            _runtime = new(_context);
+            _runtime.AddModule<Core>();
+            _runtime.AddModule<SocialLinkImporter>();
+            _runtime.AddModule<SocialLinkManager>();
+            _runtime.AddModule<CommunityHooks>();
+            _runtime.AddModule<SocialLinkUtilities>();
 
-            // TODO: Implement some mod logic
+            _runtime.AddModule<EvtPreDataService>();
+            _runtime.RegisterModules();
+
+            _modLoader.OnModLoaderInitialized += OnLoaderInit;
+            _modLoader.ModLoading += OnModLoading;
+        }
+
+        private void OnLoaderInit()
+        {
+            _modLoader.OnModLoaderInitialized -= OnLoaderInit;
+            _modLoader.ModLoading -= OnModLoading;
+        }
+
+        private IControllerType GetDependency<IControllerType>(string modName) where IControllerType : class
+        {
+            var controller = _modLoader.GetController<IControllerType>();
+            if (controller == null || !controller.TryGetTarget(out var target))
+                throw new Exception($"[{_modConfig.ModName}] Could not get controller for \"{modName}\". This depedency is likely missing.");
+            return target;
+        }
+
+        private void OnModLoading(IModV1 mod, IModConfigV1 conf)
+        {
+            if (!conf.ModDependencies.Contains(_modConfig.ModId)) return;
+            _runtime.GetModule<EvtPreDataService>().OnModLoaded(_modLoader.GetDirectoryForModId(conf.ModId));
+
+            var slplusPath = Path.Combine(_modLoader.GetDirectoryForModId(conf.ModId), SL_YAML_PATH);
+            if (!Path.Exists(slplusPath)) return;
+            _context._utils.Log($"Loaded mod with SL file at {slplusPath}");
+            var slFiles = Directory.GetFiles(slplusPath).Where(x => Constants.YAML_EXTENSION.Contains(Path.GetExtension(x).Substring(1)));
+            foreach (var slFile in slFiles)
+            {
+                _runtime.GetModule<SocialLinkImporter>().RegisterSocialLinkFile(conf.ModId, slFile);
+            }
         }
 
         #region Standard Overrides
         public override void ConfigurationUpdated(Config configuration)
         {
-            // Apply settings from configuration.
-            // ... your code here.
             _configuration = configuration;
             _logger.WriteLine($"[{_modConfig.ModId}] Config Updated: Applying");
+            _runtime.UpdateConfiguration(configuration);
         }
         #endregion
 
