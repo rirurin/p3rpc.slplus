@@ -20,26 +20,6 @@ namespace p3rpc.slplus.Event
         public byte? ForcedCldTimeZoneValue { get; set; } = null;
         public int? ForceMonth { get; set; } = null;
         public int? ForceDay { get; set; } = null;
-        /*
-        public unsafe FAtlEvtPreData* ToNative(FAtlEvtPreData* preData)
-        {
-            preData->EventMajorID = EventMajorID;
-            preData->EventMinorID = EventMinorID;
-            preData->EventCategoryTypeID = EventCategoryTypeID;
-            preData->EventRank = EventRank;
-            preData->EventCategory = EventCategory;
-            if (EventLevel != null) preData->EventLevel = *EventLevel;
-            if (EventSublevels != null) preData->EventSublevels = EventSublevels.Value;
-            if (LightScenarioSublevels != null) preData->LightScenarioSublevels = LightScenarioSublevels.Value;
-            if (DungeonSublevel != null) preData->DungeonSublevel = DungeonSublevel.Value;
-            if (bDisableAutoLoadFirstLightingScenarioLevel != null) preData->bDisableAutoLoadFirstLightingScenarioLevel = bDisableAutoLoadFirstLightingScenarioLevel.Value;
-            if (bForceDisableUseCurrentTimeZone != null) preData->bForceDisableUseCurrentTimeZone = bForceDisableUseCurrentTimeZone.Value;
-            if (ForcedCldTimeZoneValue != null) preData->ForcedCldTimeZoneValue = ForcedCldTimeZoneValue.Value;
-            if (ForceMonth != null) preData->ForceMonth = ForceMonth.Value;
-            if (ForceDay != null) preData->ForceDay = ForceDay.Value;
-            return preData;
-        }
-        */
 
         public void FromYamlModelCommon(SocialLinkUtilities _context, EvtPreDataModel model)
         {
@@ -52,33 +32,27 @@ namespace p3rpc.slplus.Event
 
         private unsafe void SublevelEntryFromYamlModel(FAtlEvtPreSublevelData* entry, SocialLinkUtilities _context, EvtPreDataSublevels model)
         {
-            entry->EventBGLevels = *_context.MakeArray<FString>(model.EventBGLevels.Count());
+            entry->EventBGLevels = _context.MakeArray<FString>(model.EventBGLevels.Count());
             for (int i = 0; i < model.EventBGLevels.Count(); i++)
-                entry->EventBGLevels.allocator_instance[i] = *_context.MakeFString(model.EventBGLevels[i]);
+                entry->EventBGLevels.allocator_instance[i] = _context.MakeFString(model.EventBGLevels[i]);
             entry->BGFieldMajorID = model.BGFieldMajorID;
             entry->BGFieldMinorID = model.BGFieldMinorID;
-            entry->BGFieldSeasonSubLevel = *_context.MakeFString(model.BGFieldSeasonSubLevel);
-            entry->BGFieldSoundSubLevel = *_context.MakeFString(model.BGFieldSoundSubLevel);
+            entry->BGFieldSeasonSubLevel = _context.MakeFString(model.BGFieldSeasonSubLevel);
+            entry->BGFieldSoundSubLevel = _context.MakeFString(model.BGFieldSoundSubLevel);
         }
         private unsafe TArray<FAtlEvtPreSublevelData>* SublevelHookFromYamlModel(SocialLinkUtilities _context, EvtPreDataModel model)
         {
-            if (model.EventSublevels == null)
-            {
-                _context.Log("model.EventSublevels == null in SublevelHookFromYamlModel (this should not happen");
-                throw new Exception();
-            }
-            var sublevels = _context.MakeArray<FAtlEvtPreSublevelData>(model.EventSublevels.Count());
+            if (model.EventSublevels == null || model.EventSublevels.Count == 0) return null;
+            var sublevels = _context.MakeArrayRef<FAtlEvtPreSublevelData>(model.EventSublevels.Count());
             for (int i = 0; i < sublevels->arr_num; i++)
                 SublevelEntryFromYamlModel(&sublevels->allocator_instance[i], _context, model.EventSublevels[i]);
             return sublevels;
         }
 
-        private static bool HasSublevels(EvtPreDataModel model) => model.EventSublevels != null && model.EventSublevels.Count > 0;
-
         private unsafe TArray<FName>* LightScenarioFromYamlModel(SocialLinkUtilities _context, EvtPreDataModel model)
         {
             if (model.LightScenarioSublevels == null) return null;
-            var lightScenarios = _context.MakeArray<FName>(model.LightScenarioSublevels.Count());
+            var lightScenarios = _context.MakeArrayRef<FName>(model.LightScenarioSublevels.Count());
             for (int i = 0; i < lightScenarios->arr_num; i++)
                 lightScenarios->allocator_instance[i] = _context.GetFName(model.LightScenarioSublevels[i]);
             return lightScenarios;
@@ -98,8 +72,8 @@ namespace p3rpc.slplus.Event
             newAdapter.FromYamlModelCommon(_context, model);
             unsafe
             {
-                newAdapter.EventLevel = (model.EventLevel != null) ? _context.MakeFString(model.EventLevel) : null;
-                newAdapter.EventSublevels = (HasSublevels(model)) ? newAdapter.SublevelHookFromYamlModel(_context, model) : null;
+                newAdapter.EventLevel = (model.EventLevel != null) ? _context.MakeFStringRef(model.EventLevel) : null;
+                newAdapter.EventSublevels = newAdapter.SublevelHookFromYamlModel(_context, model);
                 newAdapter.LightScenarioSublevels = newAdapter.LightScenarioFromYamlModel(_context, model);
                 newAdapter.DungeonSublevel = (model.DungeonSublevel != null) ? newAdapter.DungeonSublevelHookFromYamlModel(_context, model.DungeonSublevel) : null;
             }

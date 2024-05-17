@@ -91,7 +91,6 @@ namespace p3rpc.slplus.Event
             CopySublevelsPreData(&copy->EventSublevels, (hook != null && hook.EventSublevels != null) ? hook.EventSublevels : &original->EventSublevels);
             CopyLightScenarioSublevels(&copy->LightScenarioSublevels, (hook != null && hook.LightScenarioSublevels != null) ? hook.LightScenarioSublevels : &original->LightScenarioSublevels);
             CopyDungeonSublevelPreData(&copy->DungeonSublevel, (hook != null && hook.DungeonSublevel != null) ? hook.DungeonSublevel : &original->DungeonSublevel);
-
             copy->bDisableAutoLoadFirstLightingScenarioLevel = (hook != null && hook.bDisableAutoLoadFirstLightingScenarioLevel != null) ? hook.bDisableAutoLoadFirstLightingScenarioLevel.Value : original->bDisableAutoLoadFirstLightingScenarioLevel;
             copy->bForceDisableUseCurrentTimeZone = (hook != null && hook.bForceDisableUseCurrentTimeZone != null) ? hook.bForceDisableUseCurrentTimeZone.Value : original->bForceDisableUseCurrentTimeZone;
             copy->ForcedCldTimeZoneValue = (hook != null && hook.ForcedCldTimeZoneValue != null) ? hook.ForcedCldTimeZoneValue.Value : original->ForcedCldTimeZoneValue;
@@ -116,7 +115,6 @@ namespace p3rpc.slplus.Event
                     if (preDataAdaptedMaybe != null)
                     {
                         CustomEvtPreDataAdapted.Add(preHash, preDataAdaptedMaybe);
-                        if (foundPreData != null) _context._utils.Log($"CALL HOOK");
                         ToNative(dataOut, foundPreData, preDataAdaptedMaybe);
                     } else ToNative(dataOut, foundPreData, null);
                 } else
