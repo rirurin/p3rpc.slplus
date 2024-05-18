@@ -1,41 +1,13 @@
-﻿using YamlDotNet.Core;
+﻿using p3rpc.slplus.Parsing;
+using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 
 namespace p3rpc.slplus.Event
 {
-    public abstract class EvtPreDataParser<TDeserializeModel> where TDeserializeModel : class
+    public class EvtPreDataDeserializeRoot : YamlMappingParser<EvtPreDataModel>
     {
-        public Dictionary<string, EvtPreDataModelGetField> ValueParsers { get; init; } = new();
-        public delegate void EvtPreDataModelGetField(IParser parser, TDeserializeModel data);
-        public TDeserializeModel ReadCurrentMapping(IParser parser, TDeserializeModel data)
-        {
-            parser.Consume<MappingStart>();
-            while (parser.Accept<Scalar>(out _))
-            {
-                var currKey = parser.Consume<Scalar>().Value;
-                Console.WriteLine(currKey);
-                if (!ValueParsers.TryGetValue(currKey, out EvtPreDataModelGetField? getFieldCb)) break;
-                getFieldCb(parser, data);
-            }
-            parser.Consume<MappingEnd>();
-            return data;
-        }
-        public static string? NullIfEmpty(string str) => (str.Length > 0) ? str : null;
-        public static List<string> ReadSequence(IParser parser)
-        {
-            var sequenceIn = new List<string>();
-            parser.Consume<SequenceStart>();
-            while (parser.Accept<Scalar>(out _))
-                sequenceIn.Add(parser.Consume<Scalar>().Value);
-            parser.Consume<SequenceEnd>();
-            return sequenceIn;
-        }
-    }
-
-    public class EvtPreDataDeserializeRoot : EvtPreDataParser<EvtPreDataModel>
-    {
-        public static readonly EvtPreDataParser<EvtPreDataModel> Instance = new EvtPreDataDeserializeRoot();
+        public static readonly YamlMappingParser<EvtPreDataModel> Instance = new EvtPreDataDeserializeRoot();
         public EvtPreDataDeserializeRoot() : base()
         {
             ValueParsers.Add("EventLevel", ReadEventLevel);
@@ -67,9 +39,9 @@ namespace p3rpc.slplus.Event
         private void ReadForceDay(IParser parser, EvtPreDataModel data) => data.ForceDay = int.Parse(parser.Consume<Scalar>().Value);
     }
 
-    public class EvtPreDataSublevelConverter : EvtPreDataParser<EvtPreDataSublevels>
+    public class EvtPreDataSublevelConverter : YamlMappingParser<EvtPreDataSublevels>
     {
-        public static readonly EvtPreDataParser<EvtPreDataSublevels> Instance = new EvtPreDataSublevelConverter();
+        public static readonly YamlMappingParser<EvtPreDataSublevels> Instance = new EvtPreDataSublevelConverter();
         public EvtPreDataSublevelConverter() : base()
         {
             ValueParsers.Add("EventBGLevels", ReadEventBGLevels);
@@ -82,9 +54,9 @@ namespace p3rpc.slplus.Event
         private void ReadBGFieldSoundSublevel(IParser parser, EvtPreDataSublevels data) => data.BGFieldSoundSubLevel = NullIfEmpty(parser.Consume<Scalar>().Value);
     }
 
-    public class EvtPreDataDungeonSublevelConverter : EvtPreDataParser<EvtPreDataDungeonSublevel>
+    public class EvtPreDataDungeonSublevelConverter : YamlMappingParser<EvtPreDataDungeonSublevel>
     {
-        public static readonly EvtPreDataParser<EvtPreDataDungeonSublevel> Instance = new EvtPreDataDungeonSublevelConverter();
+        public static readonly YamlMappingParser<EvtPreDataDungeonSublevel> Instance = new EvtPreDataDungeonSublevelConverter();
         public EvtPreDataDungeonSublevelConverter() : base()
         {
             ValueParsers.Add("EventBGFloorLevel", ReadEventBGFloorLevel);

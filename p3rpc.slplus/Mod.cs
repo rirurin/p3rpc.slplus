@@ -3,7 +3,9 @@ using p3rpc.commonmodutils;
 using p3rpc.nativetypes.Interfaces;
 using p3rpc.slplus.Configuration;
 using p3rpc.slplus.Event;
+using p3rpc.slplus.Hooking;
 using p3rpc.slplus.Modules;
+using p3rpc.slplus.SocialLink;
 using p3rpc.slplus.Template;
 using Reloaded.Hooks.ReloadedII.Interfaces;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
@@ -49,7 +51,6 @@ namespace p3rpc.slplus
         /// The configuration of the currently executing mod.
         /// </summary>
         private readonly IModConfig _modConfig;
-        public static readonly string SL_YAML_PATH = "Social";
 
         private SocialLinkContext _context;
         private ModuleRuntime<SocialLinkContext> _runtime;
@@ -81,7 +82,7 @@ namespace p3rpc.slplus
                 new Reloaded.Memory.Memory(), sharedScans, _modConfig.ModId, classMethods, objectMethods, memoryMethods);
             _runtime = new(_context);
             _runtime.AddModule<Core>();
-            _runtime.AddModule<SocialLinkImporter>();
+            _runtime.AddModule<CommonHooks>();
             _runtime.AddModule<SocialLinkManager>();
             _runtime.AddModule<CommunityHooks>();
             _runtime.AddModule<SocialLinkUtilities>();
@@ -111,15 +112,7 @@ namespace p3rpc.slplus
         {
             if (!conf.ModDependencies.Contains(_modConfig.ModId)) return;
             _runtime.GetModule<EvtPreDataService>().OnModLoaded(_modLoader.GetDirectoryForModId(conf.ModId));
-
-            var slplusPath = Path.Combine(_modLoader.GetDirectoryForModId(conf.ModId), SL_YAML_PATH);
-            if (!Path.Exists(slplusPath)) return;
-            _context._utils.Log($"Loaded mod with SL file at {slplusPath}");
-            var slFiles = Directory.GetFiles(slplusPath).Where(x => Constants.YAML_EXTENSION.Contains(Path.GetExtension(x).Substring(1)));
-            foreach (var slFile in slFiles)
-            {
-                _runtime.GetModule<SocialLinkImporter>().RegisterSocialLinkFile(conf.ModId, slFile);
-            }
+            _runtime.GetModule<SocialLinkManager>().OnModLoaded(_modLoader.GetDirectoryForModId(conf.ModId), conf.ModId);
         }
 
         #region Standard Overrides
