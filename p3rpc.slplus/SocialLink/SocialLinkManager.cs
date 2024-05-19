@@ -36,7 +36,8 @@ namespace p3rpc.slplus.SocialLink
         public unsafe delegate void UCommunityHandler_GetSocialLinkNames(UCommunityHandler* self, TArray<FCommunityFormattedName>* nameOut, int id);
 
         private string UCommunityHandler_ConvertToCommunityFormat_SIG = "40 55 41 54 41 57 48 8D AC 24 ?? ?? ?? ?? 48 81 EC F0 01 00 00";
-        private IHook<UCommunityHandler_ConvertToCommunityFormat> _convertToCommunityFormat;
+        //private IHook<UCommunityHandler_ConvertToCommunityFormat> _convertToCommunityFormat;
+        private UCommunityHandler_ConvertToCommunityFormat _convertToCommunityFormat;
         public unsafe delegate byte UCommunityHandler_ConvertToCommunityFormat(UCommunityHandler* self, TArray<FCommunityFormattedName>* nameOut, int id, int mdlId, uint bitflag, FName nameGot);
 
         private string UCommunityHandler_GetCommunityNameFromId_SIG = "48 89 5C 24 ?? 57 48 83 EC 30 0F B6 FA 48 8B D9 E8 ?? ?? ?? ?? 45 33 C0";
@@ -46,18 +47,22 @@ namespace p3rpc.slplus.SocialLink
         private string UCommunityHandler_CmmCheckReverse_SIG = "48 89 5C 24 ?? 55 48 8D 6C 24 ?? 48 81 EC A0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 45 ?? 0F B7 01";
         private IHook<UCommunityHandler_CmmCheckReverse> _cmmCheckReverse;
         public unsafe delegate byte UCommunityHandler_CmmCheckReverse(CmmPtr* cmm);
+
+        private unsafe FString* getNameTest = null;
         public unsafe SocialLinkManager(SocialLinkContext context, Dictionary<string, ModuleBase<SocialLinkContext>> modules) : base(context, modules)
         {
             _context._utils.SigScan(UCommunityHandler_GetCmmEntry_SIG, "UCommunityHandler::GetCmmEntry", _context._utils.GetIndirectAddressShort,
                 addr => _getCmmEntry = _context._utils.MakeHooker<UCommunityHandler_GetCmmEntry>(UCommunityHandler_GetCmmEntryImpl, addr));
-            //_context._utils.SigScan(UCommunityHandler_GetSocialLinkNames_SIG, "UCommunityHandler::GetSocialLinkNames", _context._utils.GetDirectAddress,
-            //    addr => _getSocialLinkNames = _context._utils.MakeHooker<UCommunityHandler_GetSocialLinkNames>(UCommunityHandler_GetSocialLinkNamesImpl, addr));
+            _context._utils.SigScan(UCommunityHandler_GetSocialLinkNames_SIG, "UCommunityHandler::GetSocialLinkNames", _context._utils.GetDirectAddress,
+                addr => _getSocialLinkNames = _context._utils.MakeHooker<UCommunityHandler_GetSocialLinkNames>(UCommunityHandler_GetSocialLinkNamesImpl, addr));
             //_context._utils.SigScan(UCommunityHandler_ConvertToCommunityFormat_SIG, "UCommunityHandler::ConvertToCommunityFormat", _context._utils.GetDirectAddress,
             //    addr => _convertToCommunityFormat = _context._utils.MakeHooker<UCommunityHandler_ConvertToCommunityFormat>(UCommunityHandler_ConvertToCommunityFormatImpl, addr));
+            _context._utils.SigScan(UCommunityHandler_ConvertToCommunityFormat_SIG, "UCommunityHandler::ConvertToCommunityFormat", _context._utils.GetDirectAddress,
+                addr => _convertToCommunityFormat = _context._utils.MakeWrapper<UCommunityHandler_ConvertToCommunityFormat>(addr));
             //_context._utils.SigScan(UCommunityHandler_GetCommunityNameFromId_SIG, "UCommunityHandler::GetCommunityNameFromId", _context._utils.GetDirectAddress,
             //    addr => _getCmmNameFromId = _context._utils.MakeHooker<UCommunityHandler_GetCommunityNameFromId>(UCommunityHandler_GetCommunityNameFromIdImpl, addr));
-            _context._utils.SigScan(UCommunityHandler_CmmCheckReverse_SIG, "UCommunityHandler::CmmCheckReverse", _context._utils.GetDirectAddress,
-                addr => _cmmCheckReverse = _context._utils.MakeHooker<UCommunityHandler_CmmCheckReverse>(UCommunityHandler_CmmCheckReverseImpl, addr));
+            //_context._utils.SigScan(UCommunityHandler_CmmCheckReverse_SIG, "UCommunityHandler::CmmCheckReverse", _context._utils.GetDirectAddress,
+            //    addr => _cmmCheckReverse = _context._utils.MakeHooker<UCommunityHandler_CmmCheckReverse>(UCommunityHandler_CmmCheckReverseImpl, addr));
 
             CmmIdToNameChangeBitflag = new()
             {
@@ -211,15 +216,18 @@ namespace p3rpc.slplus.SocialLink
         public unsafe void UCommunityHandler_GetSocialLinkNamesImpl(UCommunityHandler* self, TArray<FCommunityFormattedName>* nameOut, int id)
         {
             // free any existing name entries if they exist (not sure if this is actually needed, but just to be safe)
+            _context._utils.Log($"GetSocialLinkNamesImpl: called on cmm id {id}");
             for (int i = 0; i < nameOut->arr_num; i++)
             {
                 FCommunityFormattedName* currCmmName = &nameOut->allocator_instance[i];
                 var currCmmNameIn = currCmmName->name.text.allocator_instance;
                 if (currCmmNameIn != null) _context._memoryMethods.FMemory_Free(currCmmNameIn);
             }
+            _context._utils.Log($"GetSocialLinkNamesImpl: freed");
             nameOut->arr_num = 0;
             if (nameOut->arr_max < 10) // resize to 10
                 _context._memoryMethods.FMemory_Realloc((nint)nameOut->allocator_instance, sizeof(FCommunityFormattedName) * 10, 8);
+            _context._utils.Log($"GetSocialLinkNamesImpl: alloc'd");
             if (id <= vanillaCmmLimit)
             {
                 var pCurrMemberFmt = (FCommunityMemberFormat*)self->pMemberFormatTable->RowMap.elements[id].Value;
@@ -229,11 +237,22 @@ namespace p3rpc.slplus.SocialLink
                     nameGot = pCurrNameFmt->CampDispCommunityCharacterNameA;
                 //_context._utils.Log(_context._objectMethods.GetFName(nameGot));
                 for (int i = 1; i <= 10; i++)
-                    if (_convertToCommunityFormat.OriginalFunction(
+                    if (_convertToCommunityFormat.Invoke(
                         self, nameOut, id, pCurrMemberFmt->GetEntry(i)->PcId,
                         pCurrMemberFmt->GetEntry(i)->Flag, nameGot) == 0)
                         break;
+                _context._utils.Log($"GetSocialLinkNamesImpl: {nameOut->arr_num} entries");
+            } /*else
+            {
+                if (getNameTest == null)
+                    getNameTest = _utils.MakeFStringRef("Saori Hasegawa");
+                FCommunityFormattedName* fakeCmmName = _context._memoryMethods.FMemory_Malloc<FCommunityFormattedName>();
+                fakeCmmName->ModelId = 0;
+                fakeCmmName->Flag = 0;
+                fakeCmmName->name = *getNameTest;
+                fakeCmmName->state = 0;
             }
+            */
             // TODO: implement this for new SL entries
         }
 
@@ -251,7 +270,7 @@ namespace p3rpc.slplus.SocialLink
         public unsafe byte UCommunityHandler_CmmCheckReverseImpl(CmmPtr* cmm)
             => (CmmIdToReverseBitflag.TryGetValue(cmm->ArcanaId, out uint bitflag) && _common._getUGlobalWork()->GetBitflag(bitflag)) ? (byte)1 : (byte)0;
 
-        public unsafe byte UCommunityHandler_ConvertToCommunityFormatImpl(UCommunityHandler* self, TArray<FCommunityFormattedName>* nameOut, int id, int mdlId, uint bitflag, FName nameGot)
-            => _convertToCommunityFormat.OriginalFunction(self, nameOut, id, mdlId, bitflag, nameGot);
+        //public unsafe byte UCommunityHandler_ConvertToCommunityFormatImpl(UCommunityHandler* self, TArray<FCommunityFormattedName>* nameOut, int id, int mdlId, uint bitflag, FName nameGot)
+        //    => _convertToCommunityFormat.OriginalFunction(self, nameOut, id, mdlId, bitflag, nameGot);
     }
 }

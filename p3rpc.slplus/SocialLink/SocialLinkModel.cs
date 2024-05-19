@@ -8,4 +8,16 @@
 
         public int ArcanaId { get; set; }
     }
+
+    public class SocialLinkBitflags
+    {
+        public uint IsOpen { get; private set; }
+        public uint IsMax { get; private set; }
+        public uint IsReverse { get; private set; }
+        public uint IsBroken { get; private set; }
+        public uint IsOk { get; private set; }
+        public uint IsNpc { get; private set; }
+        public uint IsPlayNewGame { get; private set; }
+        public uint IsTalkedToToday { get; private set; }
+    }
 }
