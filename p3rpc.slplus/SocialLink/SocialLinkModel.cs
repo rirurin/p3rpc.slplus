@@ -6,7 +6,7 @@
         public string NameKnown { get; set; }
         public string Arcana { get; set; }
 
-        public int ArcanaId { get; set; }
+        public SocialLinkArcana ArcanaId { get; set; }
     }
 
     public class SocialLinkBitflags
@@ -19,5 +19,34 @@
         public uint IsNpc { get; private set; }
         public uint IsPlayNewGame { get; private set; }
         public uint IsTalkedToToday { get; private set; }
+    }
+
+    public enum SocialLinkArcana : byte
+    { // One indexed, based on DT_CommunityFormat_Name. Note that some arcana fields may be zero indexed (e.g fool is 0)
+        UNUSED_00 = 0,
+        FOOL,
+        MAGICIAN,
+        PRIESTESS,
+        EMPRESS,
+        EMPEROR,
+        HIEROPHANT,
+        LOVERS,
+        CHARIOT,
+        JUSTICE,
+        HERMIT,
+        FORTUNE,
+        STRENGTH,
+        HANGED,
+        DEATH,
+        TEMPERANCE,
+        DEVIL,
+        TOWER,
+        STAR,
+        MOON,
+        SUN,
+        JUDGEMENT,
+        AEON // Judgement (Aigis)
+        // WORLD (21) (we will ignore these lol)
+        // UNIVERSE (21)
     }
 }

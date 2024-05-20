@@ -16,13 +16,14 @@ namespace p3rpc.slplus.SocialLink
         public static readonly int vanillaCmmLimit = 0x16;
 
         private int FirstFreeCmmIndex = vanillaCmmLimit + 1;
-        private Dictionary<int, SocialLinkModel> activeSocialLinks = new();
+        public Dictionary<int, SocialLinkModel> activeSocialLinks = new();
         //private Dictionary<int, int> slHashToCmmIndex; // starting at 0x17
-        private Dictionary<int, int> cmmIndexToSlHash = new();
+        public Dictionary<int, int> cmmIndexToSlHash = new();
         private Dictionary<int, nint> cmmIndexToCmmPtr = new(); // TODO: use key as hash, this is just for testing for now
 
         public Dictionary<int, uint> CmmIdToNameChangeBitflag;
-        public Dictionary<int, uint> CmmIdToReverseBitflag;
+
+        public Dictionary<SocialLinkArcana, List<SocialLinkModel>> ArcanaIdToNewSL = new();
 
         private CommonHooks _common;
         private SocialLinkUtilities _utils;
@@ -48,21 +49,28 @@ namespace p3rpc.slplus.SocialLink
         private IHook<UCommunityHandler_CmmCheckReverse> _cmmCheckReverse;
         public unsafe delegate byte UCommunityHandler_CmmCheckReverse(CmmPtr* cmm);
 
+        private string UCommunityHandler_CmmCheckRomance_SIG = "48 89 5C 24 ?? 55 48 8D 6C 24 ?? 48 81 EC A0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 31 E0";
+        private IHook<UCommunityHandler_CmmCheckRomance> _cmmCheckRomance;
+        public unsafe delegate byte UCommunityHandler_CmmCheckRomance(CmmPtr* cmm);
+
         private unsafe FString* getNameTest = null;
         public unsafe SocialLinkManager(SocialLinkContext context, Dictionary<string, ModuleBase<SocialLinkContext>> modules) : base(context, modules)
         {
+            //_context._utils.SigScan(UCommunityHandler_ConvertToCommunityFormat_SIG, "UCommunityHandler::ConvertToCommunityFormat", _context._utils.GetDirectAddress,
+            //    addr => _convertToCommunityFormat = _context._utils.MakeHooker<UCommunityHandler_ConvertToCommunityFormat>(UCommunityHandler_ConvertToCommunityFormatImpl, addr));
+
             _context._utils.SigScan(UCommunityHandler_GetCmmEntry_SIG, "UCommunityHandler::GetCmmEntry", _context._utils.GetIndirectAddressShort,
                 addr => _getCmmEntry = _context._utils.MakeHooker<UCommunityHandler_GetCmmEntry>(UCommunityHandler_GetCmmEntryImpl, addr));
             _context._utils.SigScan(UCommunityHandler_GetSocialLinkNames_SIG, "UCommunityHandler::GetSocialLinkNames", _context._utils.GetDirectAddress,
                 addr => _getSocialLinkNames = _context._utils.MakeHooker<UCommunityHandler_GetSocialLinkNames>(UCommunityHandler_GetSocialLinkNamesImpl, addr));
-            //_context._utils.SigScan(UCommunityHandler_ConvertToCommunityFormat_SIG, "UCommunityHandler::ConvertToCommunityFormat", _context._utils.GetDirectAddress,
-            //    addr => _convertToCommunityFormat = _context._utils.MakeHooker<UCommunityHandler_ConvertToCommunityFormat>(UCommunityHandler_ConvertToCommunityFormatImpl, addr));
             _context._utils.SigScan(UCommunityHandler_ConvertToCommunityFormat_SIG, "UCommunityHandler::ConvertToCommunityFormat", _context._utils.GetDirectAddress,
                 addr => _convertToCommunityFormat = _context._utils.MakeWrapper<UCommunityHandler_ConvertToCommunityFormat>(addr));
-            //_context._utils.SigScan(UCommunityHandler_GetCommunityNameFromId_SIG, "UCommunityHandler::GetCommunityNameFromId", _context._utils.GetDirectAddress,
-            //    addr => _getCmmNameFromId = _context._utils.MakeHooker<UCommunityHandler_GetCommunityNameFromId>(UCommunityHandler_GetCommunityNameFromIdImpl, addr));
-            //_context._utils.SigScan(UCommunityHandler_CmmCheckReverse_SIG, "UCommunityHandler::CmmCheckReverse", _context._utils.GetDirectAddress,
-            //    addr => _cmmCheckReverse = _context._utils.MakeHooker<UCommunityHandler_CmmCheckReverse>(UCommunityHandler_CmmCheckReverseImpl, addr));
+            _context._utils.SigScan(UCommunityHandler_GetCommunityNameFromId_SIG, "UCommunityHandler::GetCommunityNameFromId", _context._utils.GetDirectAddress,
+                addr => _getCmmNameFromId = _context._utils.MakeHooker<UCommunityHandler_GetCommunityNameFromId>(UCommunityHandler_GetCommunityNameFromIdImpl, addr));
+            _context._utils.SigScan(UCommunityHandler_CmmCheckReverse_SIG, "UCommunityHandler::CmmCheckReverse", _context._utils.GetDirectAddress,
+                addr => _cmmCheckReverse = _context._utils.MakeHooker<UCommunityHandler_CmmCheckReverse>(UCommunityHandler_CmmCheckReverseImpl, addr));
+            _context._utils.SigScan(UCommunityHandler_CmmCheckRomance_SIG, "UCommunityHandler::CmmCheckRomance", _context._utils.GetDirectAddress,
+                addr => _cmmCheckRomance = _context._utils.MakeHooker<UCommunityHandler_CmmCheckRomance>(UCommunityHandler_CmmCheckRomanceImpl, addr));
 
             CmmIdToNameChangeBitflag = new()
             {
@@ -71,34 +79,6 @@ namespace p3rpc.slplus.SocialLink
                 { 17,  0x10000289 }, // CMM_16TOWER______NAME_MUTATSU
                 { 19,  0x100002ab }, // CMM_18MOON_______NAME_SUEMITSU
                 { 20,  0x100002b6 }, // CMM_19SUN________NAME_KAMIKI
-            };
-
-            CmmIdToReverseBitflag = new()
-            {
-                { 01, 0x10000040 }, // CMM_00FOOL_______REVERSE
-                { 02, 0x10000041 }, // CMM_01MAGICIAN___REVERSE
-                { 03, 0x10000042 }, // CMM_02POPESS_____REVERSE
-                { 04, 0x10000043 }, // CMM_03EMPRESS____REVERSE
-                { 05, 0x10000044 }, // CMM_04EMPEROR____REVERSE
-                { 06, 0x10000045 }, // CMM_05HIEROPHANT_REVERSE
-                { 07, 0x10000046 }, // CMM_06LOVERS_____REVERSE
-                { 08, 0x10000047 }, // CMM_07CHARIOT____REVERSE
-                { 09, 0x10000048 }, // CMM_08JUSTICE____REVERSE
-                { 10, 0x10000049 }, // CMM_09HERMIT_____REVERSE
-                { 11, 0x1000004a }, // CMM_10WOFORTUNE__REVERSE
-                { 12, 0x1000004b }, // CMM_11STRENGTH___REVERSE
-                { 13, 0x1000004c }, // CMM_12HANGEDMAN__REVERSE
-                { 14, 0x1000004d }, // CMM_13DEATH______REVERSE
-                { 15, 0x1000004e }, // CMM_14TEMPERANCE_REVERSE
-                { 16, 0x1000004f }, // CMM_15DEVIL______REVERSE
-                { 17, 0x10000050 }, // CMM_16TOWER______REVERSE
-                { 18, 0x10000051 }, // CMM_17STAR_______REVERSE
-                { 19, 0x10000052 }, // CMM_18MOON_______REVERSE
-                { 20, 0x10000053 }, // CMM_19SUN________REVERSE
-                { 21, 0x10000054 }, // CMM_20JUDGEMENT__REVERSE
-                { 22, 0x10000055 }, // CMM_21WORLD______REVERSE
-                { 23, 0x10000056 }, // CMM_20THEAEON____REVERSE
-                { 24, 0x10000057 }, // CMM_21UNIVERSE___REVERSE
             };
         }
 
@@ -173,7 +153,13 @@ namespace p3rpc.slplus.SocialLink
         {
             activeSocialLinks.Add(key, newSl);
             cmmIndexToSlHash.Add(FirstFreeCmmIndex, key);
-            _context._utils.Log($"Registered new social link \"{newSl.NameKnown}\" (ID {FirstFreeCmmIndex}, key 0x{key:X})");
+            _context._utils.Log($"Registered new social link \"{newSl.NameKnown}\" for Arcana {0} (ID {FirstFreeCmmIndex}, key 0x{key:X})");
+            // add new arcana id -> custom sl
+            if (!ArcanaIdToNewSL.ContainsKey(newSl.ArcanaId))
+            {
+                List<SocialLinkModel> pArcanaId = new() { newSl };
+                ArcanaIdToNewSL.Add(newSl.ArcanaId, pArcanaId);
+            }
             FirstFreeCmmIndex++;
         }
 
@@ -215,6 +201,8 @@ namespace p3rpc.slplus.SocialLink
 
         public unsafe void UCommunityHandler_GetSocialLinkNamesImpl(UCommunityHandler* self, TArray<FCommunityFormattedName>* nameOut, int id)
         {
+            if (id <= vanillaCmmLimit) _getSocialLinkNames.OriginalFunction(self, nameOut, id);
+            /*
             // free any existing name entries if they exist (not sure if this is actually needed, but just to be safe)
             _context._utils.Log($"GetSocialLinkNamesImpl: called on cmm id {id}");
             for (int i = 0; i < nameOut->arr_num; i++)
@@ -263,12 +251,26 @@ namespace p3rpc.slplus.SocialLink
             {
                 var cmmNameFmt = (FCommunityNameFormat*)cmmHandle->pNameFormatTable->RowMap.elements[id].Value;
                 _utils.MakeFStringFromExisting(nameOut, _context._objectMethods.GetFName(cmmNameFmt->CommunityName));
-            } else _utils.MakeFStringFromExisting(nameOut, $"CMM {id}");
-            _context._utils.Log($"{nameOut->ToString()}");
+            } else
+            {
+                if (cmmIndexToSlHash.TryGetValue(id, out var slHash) && activeSocialLinks.TryGetValue(slHash, out var customSl))
+                    _utils.MakeFStringFromExisting(nameOut, customSl.NameKnown);
+                else
+                    _utils.MakeFStringFromExisting(nameOut, $"CMM {id}");
+            }
         }
 
         public unsafe byte UCommunityHandler_CmmCheckReverseImpl(CmmPtr* cmm)
-            => (CmmIdToReverseBitflag.TryGetValue(cmm->ArcanaId, out uint bitflag) && _common._getUGlobalWork()->GetBitflag(bitflag)) ? (byte)1 : (byte)0;
+        {
+            if (cmm->ArcanaId <= vanillaCmmLimit) return _common._getUGlobalWork()->GetBitflag((uint)(cmm->ArcanaId + 0x1000003f)) ? (byte) 1 : (byte)0;
+            return 0;
+        }
+
+        public unsafe byte UCommunityHandler_CmmCheckRomanceImpl(CmmPtr* cmm)
+        {
+            if (cmm->ArcanaId <= vanillaCmmLimit) return _cmmCheckRomance.OriginalFunction(cmm);
+            return 0;
+        }
 
         //public unsafe byte UCommunityHandler_ConvertToCommunityFormatImpl(UCommunityHandler* self, TArray<FCommunityFormattedName>* nameOut, int id, int mdlId, uint bitflag, FName nameGot)
         //    => _convertToCommunityFormat.OriginalFunction(self, nameOut, id, mdlId, bitflag, nameGot);

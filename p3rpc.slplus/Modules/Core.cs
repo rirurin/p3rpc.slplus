@@ -39,6 +39,7 @@ namespace p3rpc.slplus.Modules
         
         public unsafe Core(SocialLinkContext context, Dictionary<string, ModuleBase<SocialLinkContext>> modules) : base(context, modules)
         {
+            /*
             _context._utils.SigScan(AUICmpCommu_OverrideCheckSLStart_SIG, "AUICmpCommu::OverrideCheckSLStart", _context._utils.GetDirectAddress, addr =>
             {
                 string[] function =
@@ -48,6 +49,7 @@ namespace p3rpc.slplus.Modules
                 };
                 _overrideCheckSlStart = _context._hooks.CreateAsmHook(function, addr, AsmHookBehaviour.ExecuteFirst).Activate();
             });
+            */
             _context._utils.SigScan(UCommunityHandler_AddSocialLinksToSLCampMenuNumber_SIG, "UCommunityHandler::AddSocialLinksToSLCampMenuNumber", _context._utils.GetDirectAddress, addr =>
             {
                 _asmMemWrites.Add(new AddressToMemoryWrite(_context._memory, (nuint)addr, addr => _context._memory.Write(addr + 2, (byte)0x20)));

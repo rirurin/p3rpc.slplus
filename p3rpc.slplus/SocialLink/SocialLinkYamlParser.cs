@@ -19,34 +19,33 @@ namespace p3rpc.slplus.SocialLink
 
         private void ReadNameUnknown(IParser parser, SocialLinkModel data) => data.NameUnknown = parser.Consume<Scalar>().Value;
         private void ReadNameKnown(IParser parser, SocialLinkModel data) => data.NameKnown = parser.Consume<Scalar>().Value;
-
-        private int ArcanaNameToId(string arcanaName)
+        private SocialLinkArcana ArcanaNameToId(string arcanaName)
         {
             return arcanaName switch
             {
-                "Fool" => 1,
-                "Magician" => 2,
-                "Priestess" => 3,
-                "Empress" => 4,
-                "Empreor" => 5,
-                "Hierophant" => 6,
-                "Lovers" => 7,
-                "Chariot" => 8,
-                "Justice" => 9,
-                "Hermit" => 10,
-                "Fortune" => 11,
-                "Strength" => 12,
-                "Hanged" => 13,
-                "Death" => 14,
-                "Temperance" => 15,
-                "Devil" => 16,
-                "Tower" => 17,
-                "Star" => 18,
-                "Moon" => 19,
-                "Sun" => 20,
-                "Judgement" => 21,
-                "Aeon" => 22,
-                _ => throw new Exception("Unsupported arcana ID")
+                "Fool" => SocialLinkArcana.FOOL,
+                "Magician" => SocialLinkArcana.MAGICIAN,
+                "Priestess" => SocialLinkArcana.PRIESTESS,
+                "Empress" => SocialLinkArcana.EMPRESS,
+                "Empreor" => SocialLinkArcana.EMPEROR,
+                "Hierophant" => SocialLinkArcana.HIEROPHANT,
+                "Lovers" => SocialLinkArcana.LOVERS,
+                "Chariot" => SocialLinkArcana.CHARIOT,
+                "Justice" => SocialLinkArcana.JUSTICE,
+                "Hermit" => SocialLinkArcana.HERMIT,
+                "Fortune" => SocialLinkArcana.FORTUNE,
+                "Strength" => SocialLinkArcana.STRENGTH,
+                "Hanged" => SocialLinkArcana.HANGED,
+                "Death" => SocialLinkArcana.DEATH,
+                "Temperance" => SocialLinkArcana.TEMPERANCE,
+                "Devil" => SocialLinkArcana.DEVIL,
+                "Tower" => SocialLinkArcana.TOWER,
+                "Star" => SocialLinkArcana.STAR,
+                "Moon" => SocialLinkArcana.MOON,
+                "Sun" => SocialLinkArcana.SUN,
+                "Judgement" => SocialLinkArcana.JUDGEMENT,
+                "Aeon" => SocialLinkArcana.AEON,
+                _ => throw new Exception($"Unsupported arcana name {arcanaName}")
             };
         }
         private void ReadArcana(IParser parser, SocialLinkModel data)
