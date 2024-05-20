@@ -28,6 +28,13 @@
             "ItemId": 495507
           },
           "ReleaseMetadataName": "SharedScans.Reloaded.ReleaseMetadata.json"
+        },
+        "Unreal.AtlusScript.Reloaded": {
+          "Config": {
+            "ItemType": "Mod",
+            "ItemId": 501844
+          },
+          "ReleaseMetadataName": "Unreal.AtlusScript.Reloaded.ReleaseMetadata.json"
         }
       }
     },
@@ -112,7 +119,8 @@
     "p3rpc.nativetypes",
     "Reloaded.Memory.SigScan.ReloadedII",
     "reloaded.sharedlib.hooks",
-    "SharedScans.Reloaded"
+    "SharedScans.Reloaded",
+    "Unreal.AtlusScript.Reloaded"
   ],
   "OptionalDependencies": [],
   "SupportedAppId": ["p3r.exe"],

@@ -47,5 +47,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\p3rpc.nativetypes\p3rpc.nativetypes.Interfaces\p3rpc.nativetypes.Interfaces.csproj" />
     <ProjectReference Include="..\include\SharedScans\SharedScans.Interfaces\SharedScans.Interfaces.csproj" />
+    <ProjectReference Include="..\include\Unreal.AtlusScript\Unreal.AtlusScript.Interfaces\Unreal.AtlusScript.Interfaces.csproj" />
+    <ProjectReference Include="..\p3rpc.slplus.Interfaces\p3rpc.slplus.Interfaces.csproj" />
   </ItemGroup>
 </Project>

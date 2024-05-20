@@ -4,6 +4,7 @@ using p3rpc.nativetypes.Interfaces;
 using p3rpc.slplus.Configuration;
 using p3rpc.slplus.Event;
 using p3rpc.slplus.Hooking;
+using p3rpc.slplus.Interfaces;
 using p3rpc.slplus.Modules;
 using p3rpc.slplus.SocialLink;
 using p3rpc.slplus.Template;
@@ -13,13 +14,14 @@ using Reloaded.Mod.Interfaces;
 using Reloaded.Mod.Interfaces.Internal;
 using SharedScans.Interfaces;
 using System.Diagnostics;
+using Unreal.AtlusScript.Interfaces;
 
 namespace p3rpc.slplus
 {
     /// <summary>
     /// Your mod logic goes here.
     /// </summary>
-    public class Mod : ModBase // <= Do not Remove.
+    public class Mod : ModBase, IExports
     {
         /// <summary>
         /// Provides access to the mod loader API.
@@ -74,12 +76,14 @@ namespace p3rpc.slplus
 
             var classMethods = GetDependency<IClassMethods>("Class Constructor (Class Methods)");
             var objectMethods = GetDependency<IObjectMethods>("Class Constructor (Object Methods)");
+            var atlusAssets = GetDependency<IAtlusAssets>("Unreal Atlus Script");
 
             Utils utils = new(startupScanner, _logger, _hooks, baseAddress, _modConfig.ModName, System.Drawing.Color.PaleTurquoise);
             _context = new(
                 baseAddress, _configuration, _logger, startupScanner, _hooks, 
                 _modLoader.GetDirectoryForModId(_modConfig.ModId), utils, 
-                new Reloaded.Memory.Memory(), sharedScans, _modConfig.ModId, classMethods, objectMethods, memoryMethods);
+                new Reloaded.Memory.Memory(), sharedScans, _modConfig.ModId, 
+                classMethods, objectMethods, memoryMethods, atlusAssets);
             _runtime = new(_context);
             _runtime.AddModule<Core>();
             _runtime.AddModule<CommonHooks>();
@@ -91,6 +95,8 @@ namespace p3rpc.slplus
 
             _runtime.AddModule<EvtPreDataService>();
             _runtime.RegisterModules();
+
+            _modLoader.AddOrReplaceController<ICommuListColors>(_owner, _runtime.GetModule<CampMenuHooks>().listColors);
 
             _modLoader.OnModLoaderInitialized += OnLoaderInit;
             _modLoader.ModLoading += OnModLoading;
@@ -131,5 +137,6 @@ namespace p3rpc.slplus
         public Mod() { }
 #pragma warning restore CS8618
         #endregion
+        public Type[] GetTypes() => new[] { typeof(ICommuListColors) };
     }
 }

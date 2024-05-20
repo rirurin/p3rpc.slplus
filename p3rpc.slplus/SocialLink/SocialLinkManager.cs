@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using static p3rpc.slplus.Modules.Core;
+using static p3rpc.slplus.SocialLink.CampMenuHooks;
 
 namespace p3rpc.slplus.SocialLink
 {
@@ -53,6 +54,14 @@ namespace p3rpc.slplus.SocialLink
         private IHook<UCommunityHandler_CmmCheckRomance> _cmmCheckRomance;
         public unsafe delegate byte UCommunityHandler_CmmCheckRomance(CmmPtr* cmm);
 
+        private string UCmpCommu_Init_SIG = "48 89 5C 24 ?? 48 89 54 24 ?? 48 89 4C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ?? 48 81 EC B0 00 00 00 BF 1C 00 00 00";
+        private IHook<UCmpCommu_Init> _commuInit;
+        public unsafe delegate void UCmpCommu_Init(UCmpCommu* self, UAssetLoader* loader);
+
+        private string UAssetLoader_LoadTargetAsset_SIG = "48 89 5C 24 ?? 48 89 74 24 ?? 48 89 7C 24 ?? 41 56 48 83 EC 50 48 8B 02";
+        private UAssetLoader_LoadTargetAsset _loadTargetAsset;
+        public unsafe delegate void UAssetLoader_LoadTargetAsset(UAssetLoader* self, FString* name, nint dest);
+
         private unsafe FString* getNameTest = null;
         public unsafe SocialLinkManager(SocialLinkContext context, Dictionary<string, ModuleBase<SocialLinkContext>> modules) : base(context, modules)
         {
@@ -71,6 +80,10 @@ namespace p3rpc.slplus.SocialLink
                 addr => _cmmCheckReverse = _context._utils.MakeHooker<UCommunityHandler_CmmCheckReverse>(UCommunityHandler_CmmCheckReverseImpl, addr));
             _context._utils.SigScan(UCommunityHandler_CmmCheckRomance_SIG, "UCommunityHandler::CmmCheckRomance", _context._utils.GetDirectAddress,
                 addr => _cmmCheckRomance = _context._utils.MakeHooker<UCommunityHandler_CmmCheckRomance>(UCommunityHandler_CmmCheckRomanceImpl, addr));
+            _context._utils.SigScan(UCmpCommu_Init_SIG, "UCmpCommu::Init", _context._utils.GetDirectAddress,
+                addr => _commuInit = _context._utils.MakeHooker<UCmpCommu_Init>(UCmpCommu_InitImpl, addr));
+            _context._utils.SigScan(UAssetLoader_LoadTargetAsset_SIG, "UAssetLoader::LoadTargetAsset", _context._utils.GetDirectAddress, 
+                addr => _loadTargetAsset = _context._utils.MakeWrapper<UAssetLoader_LoadTargetAsset>(addr));
 
             CmmIdToNameChangeBitflag = new()
             {
@@ -274,5 +287,21 @@ namespace p3rpc.slplus.SocialLink
 
         //public unsafe byte UCommunityHandler_ConvertToCommunityFormatImpl(UCommunityHandler* self, TArray<FCommunityFormattedName>* nameOut, int id, int mdlId, uint bitflag, FName nameGot)
         //    => _convertToCommunityFormat.OriginalFunction(self, nameOut, id, mdlId, bitflag, nameGot);
+
+        public unsafe void UCmpCommu_InitImpl(UCmpCommu* self, UAssetLoader* loader)
+        {
+            _commuInit.OriginalFunction(self, loader);
+            foreach (var activeSocialLink in activeSocialLinks) {
+                if (activeSocialLink.Value.CommuBustup != null)
+                {
+                    FString slDetailBustupTex = _utils.MakeFString($"/Game/Xrd777/UI/Camp/Commu/Textures/{activeSocialLink.Value.CommuBustup}.{activeSocialLink.Value.CommuBustup}");
+                    activeSocialLink.Value.CommuBustupPtr = (nint)_context._memoryMethods.FMemory_Malloc<UTexture2D>();
+                    _context._utils.Log($"[UCmpCommu::Init] Loading asset \"{slDetailBustupTex}\"");
+                    _loadTargetAsset(loader, &slDetailBustupTex, activeSocialLink.Value.CommuBustupPtr);
+                    //_context._memoryMethods.FMemory_Free(slDetailBustupTex.text.allocator_instance);
+                }
+            }
+            // Load our added resources
+        }
     }
 }

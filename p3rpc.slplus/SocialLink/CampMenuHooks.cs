@@ -1,6 +1,7 @@
 ﻿using p3rpc.commonmodutils;
 using p3rpc.nativetypes.Interfaces;
 using p3rpc.slplus.Hooking;
+using p3rpc.slplus.Interfaces;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Hooks.Definitions.Enums;
 using Reloaded.Hooks.Definitions.X64;
@@ -9,11 +10,14 @@ using static Reloaded.Hooks.Definitions.X64.FunctionAttribute;
 
 namespace p3rpc.slplus.SocialLink
 {
-    public class CommuListColors
+    public class CommuListColors : ICommuListColors
     {
         public static readonly ConfigColor DarkColorDefault = new ConfigColor(0xe, 0xe, 0x54, 0xff);
         public static readonly ConfigColor LightColorDefault = new ConfigColor(0x72, 0xff, 0xff, 0xff);
         public static readonly ConfigColor Red = new ConfigColor(0xff, 0x0, 0x0, 0xff);
+        public static readonly ConfigColor defaultDetailsBgBox = new ConfigColor(0x0, 0x1, 0x58, 0xff);
+        public static readonly ConfigColor defaultDetailsNameplateTriangle = new ConfigColor(0x6, 0x0, 0xfd, 0xff);
+        public static readonly ConfigColor defaultDetailsNameSprite = new ConfigColor(0xe, 0xe2, 0xf8, 0xff);
         public ConfigColor BgColorNormal { get; private set; } = DarkColorDefault;
         public ConfigColor BgColorSelected { get; private set; } = ConfigColor.White;
         // public FSprColor BgColorReverse { get; set; } = new FSprColor(0x0, 0x0, 0x0, 0xff); (Not implemented in P3RE)
@@ -22,6 +26,9 @@ namespace p3rpc.slplus.SocialLink
         public ConfigColor FgColorSelected { get; private set; } = ConfigColor.Black;
         public ConfigColor CursorColor { get; private set; } = Red;
         public ConfigColor ListTitleColor { get; private set; } = ConfigColor.White;
+        public ConfigColor DetailsBgBox { get; private set; } = defaultDetailsBgBox;
+        public ConfigColor DetailsNameplateTriangle { get; private set; } = defaultDetailsNameplateTriangle;
+        public ConfigColor DetailsNameSprite { get; private set; } = defaultDetailsNameSprite;
         public unsafe FSprColor GetBackgroundColorFromMenu(CampMenuHooks.CmpCommuMenu* menu, int id)
             => ConfigColor.ToFSprColor((menu->VisibleEntryOffset == id) ? (BgColorSelected) : BgColorNormal);
 
@@ -29,13 +36,16 @@ namespace p3rpc.slplus.SocialLink
             => ConfigColor.ToFSprColor((menu->VisibleEntryOffset == id) ? FgColorSelected : FgColorNormal);
 
         // implement ICommuListColors
-        public void SetBgColorNormal(ConfigColor color) => BgColorNormal = color;
-        public void SetBgColorSelected(ConfigColor color) => BgColorSelected = color;
-        public void SetFgColorNormal(ConfigColor color) => FgColorNormal = color;
-        public void SetFgColorReverse(ConfigColor color) => FgColorReverse = color;
-        public void SetFgColorSelected(ConfigColor color) => FgColorSelected = color;
-        public void SetCursorColor(ConfigColor color) => CursorColor = color;
-        public void SetListTitleColor(ConfigColor color) => ListTitleColor = color;
+        public void SetBgColorNormal(byte r, byte g, byte b, byte a) => BgColorNormal = new ConfigColor(r, g, b, a);
+        public void SetBgColorSelected(byte r, byte g, byte b, byte a) => BgColorSelected = new ConfigColor(r, g, b, a);
+        public void SetFgColorNormal(byte r, byte g, byte b, byte a) => FgColorNormal = new ConfigColor(r, g, b, a);
+        public void SetFgColorReverse(byte r, byte g, byte b, byte a) => FgColorReverse = new ConfigColor(r, g, b, a);
+        public void SetFgColorSelected(byte r, byte g, byte b, byte a) => FgColorSelected = new ConfigColor(r, g, b, a);
+        public void SetCursorColor(byte r, byte g, byte b, byte a) => CursorColor = new ConfigColor(r, g, b, a);
+        public void SetListTitleColor(byte r, byte g, byte b, byte a) => ListTitleColor = new ConfigColor(r, g, b, a);
+        public void SetDetailsBgBox(byte r, byte g, byte b, byte a) => DetailsBgBox = new ConfigColor(r, g, b, a);
+        public void SetDetailsNameplateTriangle(byte r, byte g, byte b, byte a) => DetailsNameplateTriangle = new ConfigColor(r, g, b, a);
+        public void SetDetailsNameSprite(byte r, byte g, byte b, byte a) => DetailsNameSprite = new ConfigColor(r, g, b, a);
     }
     public class CampMenuHooks : ModuleBase<SocialLinkContext>
     {
@@ -86,18 +96,33 @@ namespace p3rpc.slplus.SocialLink
         [Function(new Register[] { FunctionAttribute.Register.r8, FunctionAttribute.Register.rdi }, FunctionAttribute.Register.rax, true)]
         public unsafe delegate int AUICmpCommu_SetArcanaTexId(AUICmpCommu* self, int arcanaOg);
 
-        private string ACmpCommuModelController_SetArcanaTexId_SIG = "48 8D 15 ?? ?? ?? ?? 49 8B 8E ?? ?? ?? ??";
+        //private string ACmpCommuModelController_SetArcanaTexId_SIG = "48 8D 15 ?? ?? ?? ?? 49 8B 8E ?? ?? ?? ??";
+        private string ACmpCommuModelController_SetArcanaTexId_SIG = "4A 8B 1C ?? 41 B8 01 00 00 00";
         private IAsmHook _setArcanaTexIdSwitch;
         private IReverseWrapper<ACmpCommuModelController_SetArcanaTexId> _setArcanaTexIdSwitchWrapper;
-        [Function(new Register[] { FunctionAttribute.Register.r14, FunctionAttribute.Register.r8 }, FunctionAttribute.Register.rax, true)]
-        public unsafe delegate int ACmpCommuModelController_SetArcanaTexId(ACmpCommuModelController* self, int arcanaOg);
+        [Function(FunctionAttribute.Register.r8, FunctionAttribute.Register.r8, true)]
+        public unsafe delegate int ACmpCommuModelController_SetArcanaTexId(int rax);
+
+        private string AUICmpCommu_SocialLinkDetailsDrawHeaderArcana_SIG = "49 8B 8F ?? ?? ?? ?? BA 08 00 00 00";
+        private IAsmHook _drawHeaderArcana;
+        private IReverseWrapper<AUICmpCommu_SocialLinkDetailsDrawHeaderArcana> _drawHeaderArcanaWrapper;
+        [Function(FunctionAttribute.Register.rax, FunctionAttribute.Register.rax, true)]
+        public unsafe delegate int AUICmpCommu_SocialLinkDetailsDrawHeaderArcana(int ogArcana);
+
+        private string AUIDrawBaseActor_DrawTriangle_SIG = "48 8B C4 4C 89 48 ?? 4C 89 40 ?? 48 89 50 ?? 48 89 48 ?? 55 53 56 57 41 57";
+        private AUIDrawBaseActor_DrawTriangle _drawTriangle;
+        public unsafe delegate void AUIDrawBaseActor_DrawTriangle(BPDrawSpr* drawer, FVector* p0, FVector* p1, FVector* p2, FColor color, float ScaleX, float ScaleY, float Angle, float Antialiasing, byte a11, byte drawId);
+
+        private string SetPresetBlendState_140cc8540_SIG = "48 83 EC 58 83 FA 09";
+        private SetPresetBlendState_140cc8540 _setPresetBlendState;
+        public unsafe delegate void SetPresetBlendState_140cc8540(BPDrawSpr* drawer, EUIOTPRESET_BLEND_TYPE type, uint drawId);
 
         private unsafe FVector2D* cmmListEntryPoints;
         private unsafe FVector2D* cmmListEntryPointsScrollTrack;
 
         private unsafe AActor* actorDefaultInstance;
 
-        private CommuListColors listColors = new();
+        public CommuListColors listColors = new();
 
         private CommonHooks _common;
         private SocialLinkManager _manager;
@@ -118,8 +143,8 @@ namespace p3rpc.slplus.SocialLink
             _context._utils.SigScan(AUICmpCommu_CmmOutlineHelpGetDialog_SIG, "AUICmpCommu::CmmOutlineHelpGetDialog", _context._utils.GetDirectAddress, addr => _cmmoutlineHelpGetDialog = _context._utils.MakeWrapper<AUICmpCommu_CmmOutlineHelpGetDialog>(addr));
             _context._utils.SigScan(UCmpCommuDetails_SocialLinkDetailsCharacterDetail_SIG, "UCmpCommuDetails::SocialLinkDetailsCharacterDetail", _context._utils.GetDirectAddress,
                 addr => _slDetailsCharDetails = _context._utils.MakeHooker<UCmpCommuDetails_SocialLinkDetailsCharacterDetail>(UCmpCommuDetails_SocialLinkDetailsCharacterDetailImpl, addr));
-            //_context._utils.SigScan(ACmpCommuModelController_Tick_SIG, "ACmpCommuModelController::Tick", _context._utils.GetDirectAddress,
-            //    addr => _cmpCommuModelCtrl = _context._utils.MakeHooker<ACmpCommuModelController_Tick>(ACmpCommuModelController_TickImpl, addr));
+            _context._utils.SigScan(ACmpCommuModelController_Tick_SIG, "ACmpCommuModelController::Tick", _context._utils.GetDirectAddress,
+                addr => _cmpCommuModelCtrl = _context._utils.MakeHooker<ACmpCommuModelController_Tick>(ACmpCommuModelController_TickImpl, addr));
 
             _context._utils.SigScan(AUICmpCommu_SetArcanaTexId_SIG, "AUICmpCommu::SetArcanaTexId", _context._utils.GetDirectAddress, addr =>
             {
@@ -133,23 +158,36 @@ namespace p3rpc.slplus.SocialLink
                 };
                 _setArcanaTexId = _context._hooks.CreateAsmHook(function, addr, AsmHookBehaviour.ExecuteFirst).Activate();
             });
-
             /*
+             * this hook causes a CLR error crash every time lol
             _context._utils.SigScan(ACmpCommuModelController_SetArcanaTexId_SIG, "ACmpCommuModelController::SetArcanaTexId", _context._utils.GetDirectAddress, addr =>
             {
                 string[] function =
                 {
                     "use64",
-                    $"{_context._utils.PreserveMicrosoftRegisters()}",
-                    $"push rax",
+                    $"push rcx",
+                    $"push rdx",
+                    $"push r8",
                     $"{_context._hooks.Utilities.GetAbsoluteCallMnemonics(ACmpCommuModelController_SetArcanaTexIdImpl, out _setArcanaTexIdSwitchWrapper)}",
-                    $"mov r8d, eax",
-                    $"pop rax",
-                    $"{_context._utils.RetrieveMicrosoftRegisters()}",
+                    $"pop r8",
+                    $"pop rdx",
+                    $"pop rcx",
                 };
                 _setArcanaTexIdSwitch = _context._hooks.CreateAsmHook(function, addr, AsmHookBehaviour.ExecuteFirst).Activate();
             });
             */
+
+            _context._utils.SigScan(AUICmpCommu_SocialLinkDetailsDrawHeaderArcana_SIG, "AUICmpCommu::SocialLinkDetailsDrawHeaderArcana", _context._utils.GetDirectAddress, addr =>
+            {
+                string[] function =
+                {
+                    "use64",
+                    $"{_context._hooks.Utilities.GetAbsoluteCallMnemonics(AUICmpCommu_SocialLinkDetailsDrawHeaderArcanaImpl, out _drawHeaderArcanaWrapper)}",
+                };
+                _drawHeaderArcana = _context._hooks.CreateAsmHook(function, addr, AsmHookBehaviour.ExecuteFirst).Activate();
+            });
+            _context._utils.SigScan(AUIDrawBaseActor_DrawTriangle_SIG, "AUIDrawBaseActor::DrawTriangle", _context._utils.GetDirectAddress, addr => _drawTriangle = _context._utils.MakeWrapper<AUIDrawBaseActor_DrawTriangle>(addr));
+            _context._utils.SigScan(SetPresetBlendState_140cc8540_SIG, "SetPresetBlendState::140cc8540", _context._utils.GetDirectAddress, addr => _setPresetBlendState = _context._utils.MakeWrapper<SetPresetBlendState_140cc8540>(addr));
 
             cmmListEntryPoints = (FVector2D*)NativeMemory.Alloc((nuint)sizeof(FVector2D) * 4);
             // Cmm entry blocks
@@ -201,6 +239,7 @@ namespace p3rpc.slplus.SocialLink
         public unsafe struct AUICmpCommu
         {
             [FieldOffset(0x0000)] public AUIBaseActor baseObj;
+            [FieldOffset(0x288)] public int Field288;
             //[FieldOffset(0x0408)] public UUISceneFSM* SceneFSM_;
             [FieldOffset(0x0410)] public UCmpCommuList* CommuListScene_;
             //[FieldOffset(0x0418)] public UCmpCommuDetails* CommuDetailsScene_;
@@ -269,8 +308,10 @@ namespace p3rpc.slplus.SocialLink
         public unsafe struct UCmpCommuDetails
         {
             //[FieldOffset(0x0000)] public UUIScene baseObj;
+            [FieldOffset(0x40)] public BPDrawSpr Drawer;
             [FieldOffset(0x0060)] public AUICmpCommu* Context_;
             [FieldOffset(0x1fc)] public float Field1FC;
+            [FieldOffset(0x47c)] public float CharDetailBgOffsetX;
             [FieldOffset(0x08B0)] public AUICmpCommu* pParent;
             [FieldOffset(0x08B8)] public ACmpMainActor* pMainActor;
         }
@@ -326,6 +367,7 @@ namespace p3rpc.slplus.SocialLink
         public unsafe struct ACmpCommuModelController
         {
             [FieldOffset(0x0000)] public AAppActor baseObj;
+            [FieldOffset(0x2a0)] public TArray<ArcanaCardIdTex> ArcanaCardId;
             [FieldOffset(0x02B0)] public ACmpMainActor* pMainActor;
             [FieldOffset(0x02B8)] public AAppPropsCardContainer* pCardContainer;
             [FieldOffset(0x02C0)] public AAppPropsCore* pCardBp;
@@ -341,6 +383,36 @@ namespace p3rpc.slplus.SocialLink
             [FieldOffset(0x0C48)] public UAssetLoader* AssetLoader_;
             [FieldOffset(0x0C50)] public AUICmpCommu* Actor_;
             [FieldOffset(0x0C58)] public ACmpCommuModelController* pModelController;
+        }
+        [StructLayout(LayoutKind.Explicit, Size = 0x8)]
+        public unsafe struct ArcanaCardIdTex
+        {
+            [FieldOffset(0x0)] public int ArcanaId;
+            [FieldOffset(0x4)] public int Field04;
+        }
+
+        public enum ECmmProfileMsgType
+        {
+            Normal = 0,
+            Reverse = 1,
+            Missing = 2,
+            Lost = 3,
+        };
+
+        [StructLayout(LayoutKind.Explicit, Size = 0x60)]
+        public unsafe struct FCmmProfileItem
+        {
+            [FieldOffset(0x0000)] public ushort PCID;
+            [FieldOffset(0x0004)] public uint DisappearID;
+            [FieldOffset(0x0008)] public int NameMsgNo;
+            //[FieldOffset(0x0010)] public TMap<ECmmProfileMsgType, int> ProfileMsgNo;
+        }
+
+        [StructLayout(LayoutKind.Explicit, Size = 0x80)]
+        public unsafe struct UCmmProfileDataAsset
+        {
+            //[FieldOffset(0x0000)] public UAppDataAsset baseObj;
+            [FieldOffset(0x0030)] public TMap<ushort, FCmmProfileItem> Data;
         }
         private unsafe uint GetArcanaNumberSprId(int arcanaId) 
         {
@@ -505,16 +577,57 @@ namespace p3rpc.slplus.SocialLink
             }
         }
 
+        private unsafe void FUN_141301af0(BPDrawSpr* param_1, byte param_2)
+        {
+            param_1->Flags2 = param_1->Flags2 & 0xfffffffe;
+            param_1->Flags2 = param_1->Flags2 | (uint)param_2;
+        }
+
         private unsafe void UCmpCommuDetails_SocialLinkDetailsCharacterDetailImpl(UCmpCommuDetails* self, int drawId, USprAsset* campSpr)
         {
-
+            var cmmMenu = self->pParent->Menu;
+            var currCmd = self->pParent->UnlockedCmmEntries.Get<CmmPtr>(cmmMenu->VisibleEntryOffset + cmmMenu->ScrollEntryOffset);
+            if (currCmd == null) return;
+            var uiResources = _context._objectMethods.GetSubsystem<UUIResources>((UGameInstance*)_common._getUGlobalWork());
+            var plgHandle = (UPlgAsset*)uiResources->GetAssetEntry(0x33);
+            var cmmProfileHelp = (UBmdAsset*)uiResources->GetAssetEntry(0xe);
+            var cmmDataAsset = uiResources->GetAssetEntry(0xf);
+            var bgXBase = self->CharDetailBgOffsetX + ((self->pParent->Field288 == 7) ? 967 : 1046); // fVar17
+            BPDrawSpr* gDrawer = _common.GetDrawer();
+            // background quad
+            _setPresetBlendState(gDrawer, EUIOTPRESET_BLEND_TYPE.UI_OT_PRESET_BLEND_MULTRANS, (uint)drawId);
+            FUN_141301af0(&self->Drawer, 1);
+            FColor detailBgColor = ConfigColor.ToFColorBP(listColors.DetailsBgBox);
+            _common._drawPlg(&self->Drawer, bgXBase + 711, 787, 0, &detailBgColor, 0xaa, 1, 1, 0, plgHandle, drawId);
+            FUN_141301af0(&self->Drawer, 0);
+            // nameplate triangle
+            _setPresetBlendState(gDrawer, EUIOTPRESET_BLEND_TYPE.UI_OT_PRESET_BLEND_SEMITRANS, (uint)drawId);
+            FVector tlP0 = new FVector(bgXBase + 304, 744, 0);
+            FVector tlP1 = new FVector(bgXBase + 221, 867, 0);
+            FVector tlP2 = new FVector(bgXBase - 49, 792, 0);
+            _drawTriangle(&self->Drawer, &tlP0, &tlP1, &tlP2, ConfigColor.ToFColorBP(listColors.DetailsNameplateTriangle), 1, 1, 0, 1.5f, 0, (byte)drawId);
+            // name sprite
+            _drawSprDetailedParams(campSpr, 0, 0x349, bgXBase, 757, 0, ConfigColor.ToFSprColor(listColors.DetailsNameSprite), drawId, 0, 1, 1, 0, 1);
+            // profile help text
         }
 
         private unsafe void ACmpCommuModelController_TickImpl(ACmpCommuModelController* self, float dt)
         {
-            if (actorDefaultInstance == null) actorDefaultInstance = (AActor*)_context._objectMethods.GetType("Actor")->class_default_obj;
-            var superTick = _context._utils.MakeWrapper<AActor_Tick>(*(nint*)(*(nint*)actorDefaultInstance + 0x460));
-            superTick.Invoke((AActor*)self, dt);
+            if (self->ArcanaCardId.arr_num > 0)
+            {
+                var cardIdInHand = self->ArcanaCardId.GetRef(0);
+                var commuActor = ((UCmpCommu*)self->pMainActor->pCurrentMenu)->Actor_;
+                if (cardIdInHand->ArcanaId > SocialLinkManager.vanillaCmmLimit)
+                {
+                    var customSlId = commuActor->UnlockedCmmEntries.Get<CmmPtr>(commuActor->Menu->ScrollEntryOffset + commuActor->Menu->VisibleEntryOffset)->ArcanaId;
+                    if (_manager.cmmIndexToSlHash.TryGetValue(customSlId, out var slHash) && _manager.activeSocialLinks.TryGetValue(slHash, out var customSl))
+                    {
+                        _context._utils.Log($"arcana tex override SWITCH: {cardIdInHand->ArcanaId} -> {customSl.ArcanaId}");
+                        cardIdInHand->ArcanaId = (int)customSl.ArcanaId;
+                    } else cardIdInHand->ArcanaId = 1;
+                }
+            }
+            _cmpCommuModelCtrl.OriginalFunction(self, dt);
         }
 
         public unsafe delegate void AActor_Tick(AActor* self, float dt);
@@ -530,15 +643,12 @@ namespace p3rpc.slplus.SocialLink
             }
             return 1;
         }
-
-        private unsafe int ACmpCommuModelController_SetArcanaTexIdImpl(ACmpCommuModelController* self, int arcanaOg)
+        private unsafe int AUICmpCommu_SocialLinkDetailsDrawHeaderArcanaImpl(int arcanaOg)
         {
             if (arcanaOg <= SocialLinkManager.vanillaCmmLimit) return arcanaOg;
-            var cmmuActor = ((UCmpCommu*)self->pMainActor->pCurrentMenu)->Actor_;
-            var customSlId = cmmuActor->UnlockedCmmEntries.Get<CmmPtr>(cmmuActor->Menu->ScrollEntryOffset + cmmuActor->Menu->VisibleEntryOffset)->ArcanaId;
-            if (_manager.cmmIndexToSlHash.TryGetValue(customSlId, out var slHash) && _manager.activeSocialLinks.TryGetValue(slHash, out var customSl))
+            if (_manager.cmmIndexToSlHash.TryGetValue(arcanaOg, out var slHash) && _manager.activeSocialLinks.TryGetValue(slHash, out var customSl))
             {
-                _context._utils.Log($"arcana tex override SWITCH: {arcanaOg} -> {customSl.ArcanaId}");
+                //_context._utils.Log($"header arcana text override: {arcanaOg} -> {customSl.ArcanaId}");
                 return (byte)customSl.ArcanaId;
             }
             return 1;

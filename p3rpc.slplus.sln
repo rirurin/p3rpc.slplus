@@ -8,6 +8,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharedScans.Interfaces", "i
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "p3rpc.nativetypes.Interfaces", "..\p3rpc.nativetypes\p3rpc.nativetypes.Interfaces\p3rpc.nativetypes.Interfaces.csproj", "{BD952653-111B-42BC-87B7-554A702B2754}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "p3rpc.slplus.Interfaces", "p3rpc.slplus.Interfaces\p3rpc.slplus.Interfaces.csproj", "{592A9882-7D1B-4023-A2CF-13464384794D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Unreal.AtlusScript.Interfaces", "include\Unreal.AtlusScript\Unreal.AtlusScript.Interfaces\Unreal.AtlusScript.Interfaces.csproj", "{9E72F597-A015-4F7E-B608-C38186A482AD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +30,14 @@ Global
 		{BD952653-111B-42BC-87B7-554A702B2754}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD952653-111B-42BC-87B7-554A702B2754}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BD952653-111B-42BC-87B7-554A702B2754}.Release|Any CPU.Build.0 = Release|Any CPU
+		{592A9882-7D1B-4023-A2CF-13464384794D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{592A9882-7D1B-4023-A2CF-13464384794D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{592A9882-7D1B-4023-A2CF-13464384794D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{592A9882-7D1B-4023-A2CF-13464384794D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E72F597-A015-4F7E-B608-C38186A482AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E72F597-A015-4F7E-B608-C38186A482AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E72F597-A015-4F7E-B608-C38186A482AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E72F597-A015-4F7E-B608-C38186A482AD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

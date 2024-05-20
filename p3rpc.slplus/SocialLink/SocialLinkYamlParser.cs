@@ -15,6 +15,10 @@ namespace p3rpc.slplus.SocialLink
             ValueParsers.Add("NameUnknown", ReadNameUnknown);
             ValueParsers.Add("NameKnown", ReadNameKnown);
             ValueParsers.Add("Arcana", ReadArcana);
+            ValueParsers.Add("CommuBustup", ReadCommuBustup);
+            ValueParsers.Add("CommuHeader", ReadCommuHeader);
+            ValueParsers.Add("CmmOutlineBmd", ReadCmmOutlineBmd);
+            ValueParsers.Add("CmmProfileBmd", ReadCmmProfileBmd);
         }
 
         private void ReadNameUnknown(IParser parser, SocialLinkModel data) => data.NameUnknown = parser.Consume<Scalar>().Value;
@@ -53,6 +57,10 @@ namespace p3rpc.slplus.SocialLink
             data.Arcana = parser.Consume<Scalar>().Value;
             data.ArcanaId = ArcanaNameToId(data.Arcana);
         }
+        private void ReadCommuBustup(IParser parser, SocialLinkModel data) => data.CommuBustup = parser.Consume<Scalar>().Value;
+        private void ReadCommuHeader(IParser parser, SocialLinkModel data) => data.CommuHeader = parser.Consume<Scalar>().Value;
+        private void ReadCmmOutlineBmd(IParser parser, SocialLinkModel data) => data.CmmOutlineBmd = parser.Consume<Scalar>().Value;
+        private void ReadCmmProfileBmd(IParser parser, SocialLinkModel data) => data.CmmProfileBmd = parser.Consume<Scalar>().Value;
     }
 
     public class SocialLinkYamlConverter : IYamlTypeConverter
