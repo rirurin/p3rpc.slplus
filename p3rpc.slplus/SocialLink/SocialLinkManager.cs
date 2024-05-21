@@ -28,6 +28,7 @@ namespace p3rpc.slplus.SocialLink
 
         private CommonHooks _common;
         private SocialLinkUtilities _utils;
+        private AssetStreamingInspector _streamInspector;
 
         private string UCommunityHandler_GetCmmEntry_SIG = "E8 ?? ?? ?? ?? 48 63 AE ?? ?? ?? ?? 48 89 44 24 ??";
         private IHook<UCommunityHandler_GetCmmEntry> _getCmmEntry;
@@ -62,6 +63,10 @@ namespace p3rpc.slplus.SocialLink
         private UAssetLoader_LoadTargetAsset _loadTargetAsset;
         public unsafe delegate void UAssetLoader_LoadTargetAsset(UAssetLoader* self, FString* name, nint dest);
 
+        private string UAssetLoader_LoadQueuedAssets_SIG = "48 89 E0 41 56 48 81 EC 90 00 00 00";
+        private UAssetLoader_LoadQueuedAssets _loadQueuedAssets;
+        public unsafe delegate void UAssetLoader_LoadQueuedAssets(UAssetLoader* self);
+
         private unsafe FString* getNameTest = null;
         public unsafe SocialLinkManager(SocialLinkContext context, Dictionary<string, ModuleBase<SocialLinkContext>> modules) : base(context, modules)
         {
@@ -84,6 +89,8 @@ namespace p3rpc.slplus.SocialLink
                 addr => _commuInit = _context._utils.MakeHooker<UCmpCommu_Init>(UCmpCommu_InitImpl, addr));
             _context._utils.SigScan(UAssetLoader_LoadTargetAsset_SIG, "UAssetLoader::LoadTargetAsset", _context._utils.GetDirectAddress, 
                 addr => _loadTargetAsset = _context._utils.MakeWrapper<UAssetLoader_LoadTargetAsset>(addr));
+            _context._utils.SigScan(UAssetLoader_LoadQueuedAssets_SIG, "UAssetLoader::LoadQueuedAssets", _context._utils.GetDirectAddress,
+                addr => _loadQueuedAssets = _context._utils.MakeWrapper<UAssetLoader_LoadQueuedAssets>(addr));
 
             CmmIdToNameChangeBitflag = new()
             {
@@ -159,6 +166,7 @@ namespace p3rpc.slplus.SocialLink
         {
             _common = GetModule<CommonHooks>();
             _utils = GetModule<SocialLinkUtilities>();
+            _streamInspector = GetModule<AssetStreamingInspector>();
         }
 
         // Social Link registry on startup (may move this to another file at a later point?)
@@ -188,6 +196,13 @@ namespace p3rpc.slplus.SocialLink
                 var slHash = BitConverter.ToInt32(SHA256.HashData(Encoding.UTF8.GetBytes(slId)));
                 var newSl = YamlSerializer.deserializer.Deserialize<SocialLinkModel>(new StreamReader(slFile));
                 RegisterSocialLink(slHash, newSl);
+            }
+            // Extend UCmpCommu to store our custom bustup data without UE calling GC
+            unsafe
+            {
+                var newCmpCommuSize = 0xc60 + (uint)(activeSocialLinks.Count * sizeof(nint));
+                _context._utils.Log($"New size of UCmpCommu is 0x{newCmpCommuSize:X}");
+                _context._classMethods.AddUnrealClassExtender("CmpCommu", newCmpCommuSize, null);
             }
         }
 
@@ -290,18 +305,25 @@ namespace p3rpc.slplus.SocialLink
 
         public unsafe void UCmpCommu_InitImpl(UCmpCommu* self, UAssetLoader* loader)
         {
-            _commuInit.OriginalFunction(self, loader);
-            foreach (var activeSocialLink in activeSocialLinks) {
-                if (activeSocialLink.Value.CommuBustup != null)
+            // Load our added resources first so we can piggyback on UAssetLoader::LoadQueuedAssets
+            _context._utils.Log($"[UCmpCommu::Init] instance: 0x{(nint)self:X}");
+            foreach (var slIdToHash in cmmIndexToSlHash)
+            {
+                var pCustomCommuBustup = (nint)(self + 1) + (slIdToHash.Key - vanillaCmmLimit - 1) * sizeof(nint);
+                if (activeSocialLinks.TryGetValue(slIdToHash.Value, out var customSl))
                 {
-                    FString slDetailBustupTex = _utils.MakeFString($"/Game/Xrd777/UI/Camp/Commu/Textures/{activeSocialLink.Value.CommuBustup}.{activeSocialLink.Value.CommuBustup}");
-                    activeSocialLink.Value.CommuBustupPtr = (nint)_context._memoryMethods.FMemory_Malloc<UTexture2D>();
-                    _context._utils.Log($"[UCmpCommu::Init] Loading asset \"{slDetailBustupTex}\"");
-                    _loadTargetAsset(loader, &slDetailBustupTex, activeSocialLink.Value.CommuBustupPtr);
-                    //_context._memoryMethods.FMemory_Free(slDetailBustupTex.text.allocator_instance);
+                    _context._utils.Log($"[UCmpCommu::Init] {customSl.NameKnown}: 0x{pCustomCommuBustup:X}");
+                    if (customSl.CommuBustup != null)
+                    {
+                        FString slDetailBustupTex = _utils.MakeFString($"/Game/Xrd777/UI/Camp/Commu/Textures/{customSl.CommuBustup}.{customSl.CommuBustup}");
+                        _context._utils.Log($"[UCmpCommu::Init] Loading asset \"{slDetailBustupTex}\" into 0x{pCustomCommuBustup:X}");
+                        _streamInspector.MemoryToNotify.Add(pCustomCommuBustup, _streamInspector.MarkAssetAsRoot);
+                        _loadTargetAsset(loader, &slDetailBustupTex, pCustomCommuBustup);
+                        //_context._memoryMethods.FMemory_Free(slDetailBustupTex.text.allocator_instance);
+                    }
                 }
             }
-            // Load our added resources
+            _commuInit.OriginalFunction(self, loader);
         }
     }
 }

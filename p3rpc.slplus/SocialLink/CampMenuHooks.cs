@@ -117,6 +117,14 @@ namespace p3rpc.slplus.SocialLink
         private SetPresetBlendState_140cc8540 _setPresetBlendState;
         public unsafe delegate void SetPresetBlendState_140cc8540(BPDrawSpr* drawer, EUIOTPRESET_BLEND_TYPE type, uint drawId);
 
+        private string UCmpCommu_DetailsDrawPortrait_SIG = "48 8B C4 48 89 58 ?? 55 56 57 41 54 41 55 41 56 41 57 48 8D 68 ?? 48 81 EC 40 01 00 00 0F 29 70 ?? 8B FA";
+        private IHook<UCmpCommu_DetailsDrawPortrait> _detailsDrawPortrait;
+        public unsafe delegate void UCmpCommu_DetailsDrawPortrait(UCmpCommu* self, uint drawId);
+
+        private string DrawTexture_SIG = "E8 ?? ?? ?? ?? 45 84 F6 75 ?? 45 84 FF 0F 84 ?? ?? ?? ?? 48 8B 43 ??";
+        private DrawTexture _drawTexture;
+        public unsafe delegate void DrawTexture(BPDrawSpr* drawer, float x, float y, float z, float texSizeX, float texSizeY, FSprColor* texColor, float sizeX, float sizeY, float angle, FVector2D* texCoord0, FVector2D* texCoord1, UTexture2D* texture, int drawPoints, int drawId);
+
         private unsafe FVector2D* cmmListEntryPoints;
         private unsafe FVector2D* cmmListEntryPointsScrollTrack;
 
@@ -188,6 +196,9 @@ namespace p3rpc.slplus.SocialLink
             });
             _context._utils.SigScan(AUIDrawBaseActor_DrawTriangle_SIG, "AUIDrawBaseActor::DrawTriangle", _context._utils.GetDirectAddress, addr => _drawTriangle = _context._utils.MakeWrapper<AUIDrawBaseActor_DrawTriangle>(addr));
             _context._utils.SigScan(SetPresetBlendState_140cc8540_SIG, "SetPresetBlendState::140cc8540", _context._utils.GetDirectAddress, addr => _setPresetBlendState = _context._utils.MakeWrapper<SetPresetBlendState_140cc8540>(addr));
+            _context._utils.SigScan(UCmpCommu_DetailsDrawPortrait_SIG, "UCmpCommu::DetailsDrawPortrait", _context._utils.GetDirectAddress, 
+                addr => _detailsDrawPortrait = _context._utils.MakeHooker<UCmpCommu_DetailsDrawPortrait>(UCmpCommu_DetailsDrawPortraitImpl, addr));
+            _context._utils.SigScan(DrawTexture_SIG, "DrawTexture", _context._utils.GetIndirectAddressShort, addr => _drawTexture = _context._utils.MakeWrapper<DrawTexture>(addr));
 
             cmmListEntryPoints = (FVector2D*)NativeMemory.Alloc((nuint)sizeof(FVector2D) * 4);
             // Cmm entry blocks
@@ -242,7 +253,7 @@ namespace p3rpc.slplus.SocialLink
             [FieldOffset(0x288)] public int Field288;
             //[FieldOffset(0x0408)] public UUISceneFSM* SceneFSM_;
             [FieldOffset(0x0410)] public UCmpCommuList* CommuListScene_;
-            //[FieldOffset(0x0418)] public UCmpCommuDetails* CommuDetailsScene_;
+            [FieldOffset(0x0418)] public UCmpCommuDetails* CommuDetailsScene_;
             [FieldOffset(0x420)] public long UnlockedCount;
             [FieldOffset(0x428)] public TArray<nint> UnlockedCmmEntries;
             [FieldOffset(0x438)] public TArray<nint> CmmEntries2;
@@ -310,6 +321,7 @@ namespace p3rpc.slplus.SocialLink
             //[FieldOffset(0x0000)] public UUIScene baseObj;
             [FieldOffset(0x40)] public BPDrawSpr Drawer;
             [FieldOffset(0x0060)] public AUICmpCommu* Context_;
+            [FieldOffset(0x68)] public CmpCommuMenu* Menu;
             [FieldOffset(0x1fc)] public float Field1FC;
             [FieldOffset(0x47c)] public float CharDetailBgOffsetX;
             [FieldOffset(0x08B0)] public AUICmpCommu* pParent;
@@ -379,10 +391,19 @@ namespace p3rpc.slplus.SocialLink
         public unsafe struct UCmpCommu
         {
             [FieldOffset(0x0000)] public UCmpMenuBase baseObj;
+            [FieldOffset(0x38)] public BPDrawSpr drawer;
             [FieldOffset(0x0060)] public UTexture2D* pCommuBustupAry;
             [FieldOffset(0x0C48)] public UAssetLoader* AssetLoader_;
             [FieldOffset(0x0C50)] public AUICmpCommu* Actor_;
             [FieldOffset(0x0C58)] public ACmpCommuModelController* pModelController;
+
+            public UTexture2D* GetCustomSlPortrait(int cmmId)
+            {
+                fixed (UCmpCommu* self = &this)
+                {
+                    return *(UTexture2D**)((nint)(self + 1) + (cmmId - SocialLinkManager.vanillaCmmLimit - 1) * 8);
+                }
+            }
         }
         [StructLayout(LayoutKind.Explicit, Size = 0x8)]
         public unsafe struct ArcanaCardIdTex
@@ -652,6 +673,90 @@ namespace p3rpc.slplus.SocialLink
                 return (byte)customSl.ArcanaId;
             }
             return 1;
+        }
+
+        // FUN_1412930d0
+        private unsafe bool UGlobalWork_HasMemberJoined(ushort memberId)
+        {
+            var gWork = _common._getUGlobalWork();
+            return memberId switch
+            {
+                1 => true,
+                >= 2 and <= 10 => gWork->GetBitflag(0x3fffffff + (uint)memberId),
+                _ => false
+            };
+        }
+        private unsafe static int BoolToInt(bool a) => (a) ? 1 : 0;
+
+        private unsafe int UCmpCommu_GetPortraitTexIdForSees()
+        {
+            var foolBustupId =
+                BoolToInt(UGlobalWork_HasMemberJoined(7)) + // Aigis
+                BoolToInt(UGlobalWork_HasMemberJoined(8)) + // Ken
+                BoolToInt(UGlobalWork_HasMemberJoined(9)) + // Koromaru
+                BoolToInt(UGlobalWork_HasMemberJoined(6)); // Fuuka
+            if (UGlobalWork_HasMemberJoined(10)) // Shinjiro
+                return _common._getUGlobalWork()->GetBitflag(0x6f) 
+                    ? foolBustupId + 1 : foolBustupId; // EVT_ARAGAKI_OUT
+            return foolBustupId + 1;
+        }
+        // FUN_14129c4d0 (mostly)
+        private unsafe int UCmpCommu_GetPortraitTexIdVanilla(int id)
+        {
+            return id switch
+            {
+                2 => 6,
+                3 => 7,
+                4 => 8,
+                5 => 9,
+                7 => 0xc,
+                8 => 0xd,
+                9 => 0xe,
+                10 => 0xf,
+                0xb => 0x10,
+                0xc => 0x11,
+                0xd => 0x12,
+                0xe => 0x13,
+                0xf => 0x14,
+                0x10 => 0x15,
+                0x11 => 0x16,
+                0x12 => 0x17,
+                0x13 => 0x18,
+                0x14 => 0x19,
+                0x15 => 0x1a,
+                0x16 => 0x1b,
+                _ => UCmpCommu_GetPortraitTexIdForSees(),
+            };
+        }
+        private unsafe UTexture2D* UCmpCommu_GetPortraitTexture(UCmpCommu* self)
+        {
+            var cmmMenu = self->Actor_->Menu;
+            var currCmd = self->Actor_->UnlockedCmmEntries.Get<CmmPtr>(cmmMenu->VisibleEntryOffset + cmmMenu->ScrollEntryOffset)->ArcanaId;
+            if (currCmd <= SocialLinkManager.vanillaCmmLimit)
+                return (&self->pCommuBustupAry)[UCmpCommu_GetPortraitTexIdVanilla(currCmd)];
+            if (_manager.cmmIndexToSlHash.TryGetValue(currCmd, out var cmmHash) && _manager.activeSocialLinks.TryGetValue(cmmHash, out var customSl))
+                return self->GetCustomSlPortrait(currCmd);
+            return null;
+            //return (&self->pCommuBustupAry)[UCmpCommu_GetPortraitTexIdVanilla(1)];
+        }
+
+        private unsafe void UCmpCommu_DetailsDrawPortraitImpl(UCmpCommu* self, uint drawId)
+        {
+            BPDrawSpr* gDrawer = _common.GetDrawer();
+            _common._setRenderTarget(gDrawer, 0, drawId);
+            FSprColor commuBupTint = new FSprColor(0xff, 0xff, 0xff, 0xff);
+            FVector commuBupPos = new FVector(1336, -297, 0);
+            FVector2D commuBupTexcoord0 = new FVector2D(0, 0);
+            FVector2D commuBupTexcoord1 = new FVector2D(1, 1);
+            UTexture2D* commuBup = UCmpCommu_GetPortraitTexture(self);
+            if (commuBup != null)
+            {
+                _drawTexture(&self->drawer, 
+                    commuBupPos.X + commuBupPos.Y + self->Actor_->CommuDetailsScene_->CharDetailBgOffsetX,
+                    57, 0, 2048, 2048, &commuBupTint, 1, 1, 0, &commuBupTexcoord0, &commuBupTexcoord1,
+                    commuBup, 4, (int)drawId);
+            }
+            //_context._utils.Log($"[UCmpCommu::DetailsDrawPortraitImpl] GetPortraitTexture got {(nint):X}");
         }
     }
 }

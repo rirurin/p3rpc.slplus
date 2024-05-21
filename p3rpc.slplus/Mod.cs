@@ -92,6 +92,7 @@ namespace p3rpc.slplus
             _runtime.AddModule<SocialLinkUtilities>();
             _runtime.AddModule<CampMenuHooks>();
             _runtime.AddModule<VelvetRoomHooks>();
+            _runtime.AddModule<AssetStreamingInspector>();
 
             _runtime.AddModule<EvtPreDataService>();
             _runtime.RegisterModules();
