@@ -7,6 +7,7 @@
         public static readonly string BMD_SOURCE_EXTENSION = "msg";
         public static readonly string CampCommuBmds = "/Game/Xrd777/Community/Help/";
         public static readonly string RankUpTextures = "/Game/Xrd777/UI/Community/RankUp/";
+        public static readonly string MailTextBmds = "/Game/Xrd777/UI/MailTitle/";
 
         public static string MakeAssetPath(string path) => $"{path}.{path.Split("/")[^1]}";
     }

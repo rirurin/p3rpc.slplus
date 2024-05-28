@@ -161,12 +161,14 @@ namespace p3rpc.slplus.SocialLink
             [FieldOffset(0x18)] public int state;
         }
 
-        [StructLayout(LayoutKind.Explicit, Size = 0x18)]
+        [StructLayout(LayoutKind.Explicit, Size = 0x20)]
         public unsafe struct CustomCmmData
         {
             [FieldOffset(0x0)] public UTexture2D* RankUpName;
             [FieldOffset(0x8)] public USprAsset* RankUpSpr;
-            [FieldOffset(0x10)] public byte bRankUpNameLoading;
+            [FieldOffset(0x10)] public UBmdAsset* MailTextBmd;
+            [FieldOffset(0x18)] public byte bRankUpNameLoading;
+            //[FieldOffset(0x19)] public byte bMailTextLoading;
         }
 
         public override void Register()
@@ -225,6 +227,7 @@ namespace p3rpc.slplus.SocialLink
                 // hook message assets
                 TryRegisterMessageAssetHook(newSl.CmmOutlineBmd, slplusPath);
                 TryRegisterMessageAssetHook(newSl.CmmProfileBmd, slplusPath);
+                TryRegisterMessageAssetHook(newSl.MailText, slplusPath);
                 RegisterSocialLink(slHash, newSl);
             }
             unsafe
@@ -396,6 +399,14 @@ namespace p3rpc.slplus.SocialLink
                         _assetLoader.LoadAsset(
                             loader, Constants.MakeAssetPath($"{Constants.CampCommuBmds}{customSl.CmmProfileBmd}"),
                             (nint)(&pCustomCommuBustup->ProfileBmd), _assetLoader.MarkAssetAsRoot);
+                    }
+                    if (customSl.MailText != null)
+                    {
+                        var cmmWork = _common._getUGlobalWork()->pCommunityWork;
+                        var customCmm = &((CustomCmmData*)(cmmWork + 1))[slIdToHash.Key - vanillaCmmLimit - 1];
+                        _assetLoader.LoadAsset(
+                            loader, Constants.MakeAssetPath($"{Constants.MailTextBmds}{customSl.MailText}"),
+                            (nint)(&customCmm->MailTextBmd), _assetLoader.MarkAssetAsRoot);
                     }
                 }
             }
