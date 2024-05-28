@@ -5,6 +5,7 @@ using p3rpc.slplus.Configuration;
 using p3rpc.slplus.Event;
 using p3rpc.slplus.Hooking;
 using p3rpc.slplus.Interfaces;
+using p3rpc.slplus.Messages;
 using p3rpc.slplus.Modules;
 using p3rpc.slplus.SocialLink;
 using p3rpc.slplus.Template;
@@ -78,7 +79,7 @@ namespace p3rpc.slplus
             var objectMethods = GetDependency<IObjectMethods>("Class Constructor (Object Methods)");
             var atlusAssets = GetDependency<IAtlusAssets>("Unreal Atlus Script");
 
-            Utils utils = new(startupScanner, _logger, _hooks, baseAddress, _modConfig.ModName, System.Drawing.Color.PaleTurquoise);
+            Utils utils = new(startupScanner, _logger, _hooks, baseAddress, _modConfig.ModName, System.Drawing.Color.PaleTurquoise, _configuration.LogLevel);
             _context = new(
                 baseAddress, _configuration, _logger, startupScanner, _hooks, 
                 _modLoader.GetDirectoryForModId(_modConfig.ModId), utils, 
@@ -92,7 +93,9 @@ namespace p3rpc.slplus
             _runtime.AddModule<SocialLinkUtilities>();
             _runtime.AddModule<CampMenuHooks>();
             _runtime.AddModule<VelvetRoomHooks>();
-            _runtime.AddModule<AssetStreamingInspector>();
+            _runtime.AddModule<AssetLoader>();
+            _runtime.AddModule<MessageHooks>();
+            _runtime.AddModule<RankUpHooks>();
 
             _runtime.AddModule<EvtPreDataService>();
             _runtime.RegisterModules();

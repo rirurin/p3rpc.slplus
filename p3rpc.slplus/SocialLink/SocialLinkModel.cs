@@ -5,12 +5,13 @@
         public string NameUnknown { get; set; }
         public string NameKnown { get; set; }
         public string Arcana { get; set; }
+        public SocialLinkArcana ArcanaId { get; set; }
         public string CommuBustup { get; set; }
         public string CommuHeader { get; set; }
         public string CmmOutlineBmd { get; set; }
         public string CmmProfileBmd { get; set; }
-        public SocialLinkArcana ArcanaId { get; set; }
-        public nint CommuBustupPtr { get; set; }
+        public string RankUpName { get; set; }
+        public string MailText { get; set; }
     }
 
     public class SocialLinkBitflags

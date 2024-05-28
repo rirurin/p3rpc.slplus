@@ -19,6 +19,8 @@ namespace p3rpc.slplus.SocialLink
             ValueParsers.Add("CommuHeader", ReadCommuHeader);
             ValueParsers.Add("CmmOutlineBmd", ReadCmmOutlineBmd);
             ValueParsers.Add("CmmProfileBmd", ReadCmmProfileBmd);
+            ValueParsers.Add("RankUpName", ReadRankUpName);
+            ValueParsers.Add("MailText", ReadMailText);
         }
 
         private void ReadNameUnknown(IParser parser, SocialLinkModel data) => data.NameUnknown = parser.Consume<Scalar>().Value;
@@ -61,6 +63,8 @@ namespace p3rpc.slplus.SocialLink
         private void ReadCommuHeader(IParser parser, SocialLinkModel data) => data.CommuHeader = parser.Consume<Scalar>().Value;
         private void ReadCmmOutlineBmd(IParser parser, SocialLinkModel data) => data.CmmOutlineBmd = parser.Consume<Scalar>().Value;
         private void ReadCmmProfileBmd(IParser parser, SocialLinkModel data) => data.CmmProfileBmd = parser.Consume<Scalar>().Value;
+        private void ReadRankUpName(IParser parser, SocialLinkModel data) => data.RankUpName = parser.Consume<Scalar>().Value;
+        private void ReadMailText(IParser parser, SocialLinkModel data) => data.MailText = parser.Consume<Scalar>().Value;
     }
 
     public class SocialLinkYamlConverter : IYamlTypeConverter

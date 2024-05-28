@@ -1,4 +1,5 @@
-﻿using p3rpc.slplus.Template.Configuration;
+﻿using p3rpc.commonmodutils;
+using p3rpc.slplus.Template.Configuration;
 using Reloaded.Mod.Interfaces.Structs;
 using System.ComponentModel;
 
@@ -17,6 +18,14 @@ namespace p3rpc.slplus.Configuration
         [DisplayName("DrawPoint")]
         [DefaultValue(0)]
         public uint DrawPoint { get; set; } = 0;
+
+        [DisplayName("Description Debug")]
+        [DefaultValue(false)]
+        public bool ShowOriginalDescription { get; set; } = false;
+
+        [DisplayName("Log Level")]
+        [DefaultValue(LogLevel.Information)]
+        public LogLevel LogLevel { get; set; } = LogLevel.Information;
     }
 
     /// <summary>

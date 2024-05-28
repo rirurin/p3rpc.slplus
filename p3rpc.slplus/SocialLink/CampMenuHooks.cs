@@ -2,10 +2,13 @@
 using p3rpc.nativetypes.Interfaces;
 using p3rpc.slplus.Hooking;
 using p3rpc.slplus.Interfaces;
+using p3rpc.slplus.Messages;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Hooks.Definitions.Enums;
 using Reloaded.Hooks.Definitions.X64;
 using System.Runtime.InteropServices;
+using static p3rpc.slplus.Messages.MessageHooks;
+using static p3rpc.slplus.SocialLink.SocialLinkManager;
 using static Reloaded.Hooks.Definitions.X64.FunctionAttribute;
 
 namespace p3rpc.slplus.SocialLink
@@ -71,7 +74,9 @@ namespace p3rpc.slplus.SocialLink
         public unsafe delegate void AUIDrawBaseActor_FontDrawEx(float x, float y, float z, FColor color, float size, float angle, float anglePointX, float anglePointY, FString* name, uint drawId, uint drawPoint, float* transformMtx);
 
         private string AUIDrawBaseActor_DrawFont_SIG = "4C 8B DC 49 89 5B ?? 49 89 73 ?? 55 49 8D AB ?? ?? ?? ??";
+        private string AUIDrawBaseActor_DrawFont2_SIG = "4C 8B DC 53 55 48 81 EC A8 01 00 00";
         private AUIDrawBaseActor_DrawFont _drawFont;
+        private AUIDrawBaseActor_DrawFont _drawFont2;
         public unsafe delegate void AUIDrawBaseActor_DrawFont(TextData* text, nint a2, float a3, float a4, float a5, float a6, byte a7, int a8);
 
         private string UCmpCommuDetails_SocialLinkDrawDescription_SIG = "40 55 56 41 55 41 56 48 8D 6C 24 ?? 48 81 EC 68 01 00 00";
@@ -125,14 +130,21 @@ namespace p3rpc.slplus.SocialLink
         private DrawTexture _drawTexture;
         public unsafe delegate void DrawTexture(BPDrawSpr* drawer, float x, float y, float z, float texSizeX, float texSizeY, FSprColor* texColor, float sizeX, float sizeY, float angle, FVector2D* texCoord0, FVector2D* texCoord1, UTexture2D* texture, int drawPoints, int drawId);
 
+        private string UCmmProfileDataAsset_GetBmdProfilePage_SIG = "40 55 53 56 41 55 48 8B EC 48 83 EC 38";
+        private UCmmProfileDataAsset_GetBmdProfilePage _getBmdProfilePage;
+        public unsafe delegate int UCmmProfileDataAsset_GetBmdProfilePage(UCmmProfileDataAsset* self, short arcana, short modelId);
+
         private unsafe FVector2D* cmmListEntryPoints;
         private unsafe FVector2D* cmmListEntryPointsScrollTrack;
 
         private unsafe AActor* actorDefaultInstance;
 
+        private unsafe UUIResources* uiResourcesInstance;
+
         public CommuListColors listColors = new();
 
         private CommonHooks _common;
+        private MessageHooks _msgHook;
         private SocialLinkManager _manager;
         private SocialLinkUtilities _utils;
         public unsafe CampMenuHooks(SocialLinkContext context, Dictionary<string, ModuleBase<SocialLinkContext>> modules) : base(context, modules)
@@ -144,6 +156,7 @@ namespace p3rpc.slplus.SocialLink
             _context._utils.SigScan(UCmpCommuList_DrawQuad_SIG, "UCmpCommuList::DrawQuad", _context._utils.GetDirectAddress, addr => _cmpDrawQuad = _context._utils.MakeWrapper<UCmpCommuList_DrawQuad>(addr));
             _context._utils.SigScan(UCmpCommuList_DrawRoundRect_SIG, "UCmpCommuList::DrawRoundRect", _context._utils.GetDirectAddress, addr => _drawRoundRect = _context._utils.MakeWrapper<UCmpCommuList_DrawRoundRect>(addr));
             _context._utils.SigScan(AUIDrawBaseActor_DrawFont_SIG, "AUIDrawBaseActor::DrawFont", _context._utils.GetDirectAddress, addr => _drawFont = _context._utils.MakeWrapper<AUIDrawBaseActor_DrawFont>(addr));
+            _context._utils.SigScan(AUIDrawBaseActor_DrawFont2_SIG, "AUIDrawBaseActor::DrawFont2", _context._utils.GetDirectAddress, addr => _drawFont2 = _context._utils.MakeWrapper<AUIDrawBaseActor_DrawFont>(addr));
             _context._utils.SigScan(AUIDrawBaseActor_FontDrawEx_SIG, "AUIDrawBaseActor::FontDrawEx", _context._utils.GetIndirectAddressShort, addr => _fontDrawEx = _context._utils.MakeWrapper<AUIDrawBaseActor_FontDrawEx>(addr));
 
             _context._utils.SigScan(UCmpCommuDetails_SocialLinkDrawDescription_SIG, "UCmpCommuDetails::SocialLinkDrawDescription", _context._utils.GetDirectAddress,
@@ -194,11 +207,16 @@ namespace p3rpc.slplus.SocialLink
                 };
                 _drawHeaderArcana = _context._hooks.CreateAsmHook(function, addr, AsmHookBehaviour.ExecuteFirst).Activate();
             });
-            _context._utils.SigScan(AUIDrawBaseActor_DrawTriangle_SIG, "AUIDrawBaseActor::DrawTriangle", _context._utils.GetDirectAddress, addr => _drawTriangle = _context._utils.MakeWrapper<AUIDrawBaseActor_DrawTriangle>(addr));
-            _context._utils.SigScan(SetPresetBlendState_140cc8540_SIG, "SetPresetBlendState::140cc8540", _context._utils.GetDirectAddress, addr => _setPresetBlendState = _context._utils.MakeWrapper<SetPresetBlendState_140cc8540>(addr));
+            _context._utils.SigScan(AUIDrawBaseActor_DrawTriangle_SIG, "AUIDrawBaseActor::DrawTriangle", _context._utils.GetDirectAddress, 
+                addr => _drawTriangle = _context._utils.MakeWrapper<AUIDrawBaseActor_DrawTriangle>(addr));
+            _context._utils.SigScan(SetPresetBlendState_140cc8540_SIG, "SetPresetBlendState::140cc8540", _context._utils.GetDirectAddress, 
+                addr => _setPresetBlendState = _context._utils.MakeWrapper<SetPresetBlendState_140cc8540>(addr));
             _context._utils.SigScan(UCmpCommu_DetailsDrawPortrait_SIG, "UCmpCommu::DetailsDrawPortrait", _context._utils.GetDirectAddress, 
                 addr => _detailsDrawPortrait = _context._utils.MakeHooker<UCmpCommu_DetailsDrawPortrait>(UCmpCommu_DetailsDrawPortraitImpl, addr));
-            _context._utils.SigScan(DrawTexture_SIG, "DrawTexture", _context._utils.GetIndirectAddressShort, addr => _drawTexture = _context._utils.MakeWrapper<DrawTexture>(addr));
+            _context._utils.SigScan(DrawTexture_SIG, "DrawTexture", _context._utils.GetIndirectAddressShort, 
+                addr => _drawTexture = _context._utils.MakeWrapper<DrawTexture>(addr));
+            _context._utils.SigScan(UCmmProfileDataAsset_GetBmdProfilePage_SIG, "UCmmProfileDataAsset::GetBmdProfilePage", _context._utils.GetDirectAddress,
+                addr => _getBmdProfilePage = _context._utils.MakeWrapper<UCmmProfileDataAsset_GetBmdProfilePage>(addr));
 
             cmmListEntryPoints = (FVector2D*)NativeMemory.Alloc((nuint)sizeof(FVector2D) * 4);
             // Cmm entry blocks
@@ -226,6 +244,7 @@ namespace p3rpc.slplus.SocialLink
             _manager = GetModule<SocialLinkManager>();
             _utils = GetModule<SocialLinkUtilities>();
             _common = GetModule<CommonHooks>();
+            _msgHook = GetModule<MessageHooks>();
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 0xa0)]
@@ -259,7 +278,7 @@ namespace p3rpc.slplus.SocialLink
             [FieldOffset(0x438)] public TArray<nint> CmmEntries2;
             [FieldOffset(0x448)] public CmpCommuMenu* Menu;
             [FieldOffset(0x0458)] public ACmpMainActor* pMainActor;
-            //[FieldOffset(0x0460)] public UCmpCommu* pParent;
+            [FieldOffset(0x0460)] public UCmpCommu* pParent;
             //[FieldOffset(0x0468)] public ACmpCommuModelController* pModelController;
         }
 
@@ -322,6 +341,7 @@ namespace p3rpc.slplus.SocialLink
             [FieldOffset(0x40)] public BPDrawSpr Drawer;
             [FieldOffset(0x0060)] public AUICmpCommu* Context_;
             [FieldOffset(0x68)] public CmpCommuMenu* Menu;
+            [FieldOffset(0x78)] public TArray<FCommunityFormattedName> FormattedNames;
             [FieldOffset(0x1fc)] public float Field1FC;
             [FieldOffset(0x47c)] public float CharDetailBgOffsetX;
             [FieldOffset(0x08B0)] public AUICmpCommu* pParent;
@@ -392,6 +412,9 @@ namespace p3rpc.slplus.SocialLink
         {
             [FieldOffset(0x0000)] public UCmpMenuBase baseObj;
             [FieldOffset(0x38)] public BPDrawSpr drawer;
+            [FieldOffset(0x48)] public int MenuSelected;
+            [FieldOffset(0x4c)] public int MenuState;
+            [FieldOffset(0x58)] public byte bIsInitialized;
             [FieldOffset(0x0060)] public UTexture2D* pCommuBustupAry;
             [FieldOffset(0x0C48)] public UAssetLoader* AssetLoader_;
             [FieldOffset(0x0C50)] public AUICmpCommu* Actor_;
@@ -401,7 +424,16 @@ namespace p3rpc.slplus.SocialLink
             {
                 fixed (UCmpCommu* self = &this)
                 {
-                    return *(UTexture2D**)((nint)(self + 1) + (cmmId - SocialLinkManager.vanillaCmmLimit - 1) * 8);
+                    return ((UCmpCommuExtendedEntry*)(self + 1))[cmmId - vanillaCmmLimit - 1].BustupTex;
+                    //return *(UTexture2D**)((nint)(self + 1) + (cmmId - SocialLinkManager.vanillaCmmLimit - 1) * 8);
+                }
+            }
+
+            public UCmpCommuExtendedEntry* GetExtendedCmmEntry(int cmmId)
+            {
+                fixed (UCmpCommu* self = &this)
+                {
+                    return &((UCmpCommuExtendedEntry*)(self + 1))[cmmId - vanillaCmmLimit - 1];
                 }
             }
         }
@@ -452,6 +484,7 @@ namespace p3rpc.slplus.SocialLink
         }
         private unsafe void UCmpCommuList_DrawSocialLinkListImpl(UCmpCommuList* self, int drawId, USprAsset* campSpr)
         {
+            //_context._utils.Log($"camp spr asset: 0x{(nint)campSpr:X}");
             var cmpCommuListMenu = self->pParent->Menu;
             var unlockedCmms = &self->pParent->UnlockedCmmEntries;
             float listOpacity = (self->GetListVisibleEntry(0)->Flags != 0) ? self->GetListVisibleEntry(0)->Opacity : 0.0f;
@@ -577,24 +610,69 @@ namespace p3rpc.slplus.SocialLink
             }
         }
 
+        private unsafe void UCmpCommu_DrawTextFromBmd(UBmdAsset* bmd, int dialogNo, int pageNo, FVector textDataPos, FVector drawCallPos, int drawId)
+        {
+            var bmdWrapper = _msgHook._createBmdWrapper.Invoke(bmd->mBuf.allocator_instance);
+            var bmdPage = _msgHook._createBmdPage.Invoke(bmdWrapper, dialogNo, pageNo, 0);
+            bmdPage = _msgHook._setPageTextSize.Invoke(bmdPage, 620, 0, 4, 0, 0, 0);
+            FString* bmdTextFStr = _context._memoryMethods.FMemory_Malloc<FString>();
+            _msgHook._bmdPageToFString.Invoke(bmdTextFStr, (nint)bmdPage->CharacterData->Next);
+            TextData bmdText = new TextData(
+                textDataPos,
+                new FSprColor(0xff, 0xff, 0xff, 0xff), 1, *bmdTextFStr
+            );
+
+            _drawFont2.Invoke(&bmdText, 0, drawCallPos.X, drawCallPos.Y, 0, 0, 0, drawId);
+
+            _context._memoryMethods.FMemory_Free(bmdTextFStr);
+            _msgHook._freeBmdPage.Invoke(bmdPage);
+            _msgHook._freeBmdWrapper.Invoke(bmdWrapper);
+        }
+
         private unsafe void UCmpCommuDetails_SocialLinkDrawDescriptionImpl(UCmpCommuDetails* self, int drawId)
         {
-            var currCmd = self->pParent->UnlockedCmmEntries.Get<CmmPtr>(self->pParent->Menu->VisibleEntryOffset + self->pParent->Menu->ScrollEntryOffset);
+            if (_context._config.ShowOriginalDescription)
+            {
+                _slDrawDescription.OriginalFunction(self, drawId);
+                return;
+            }
+            var cmmMenu = self->pParent->Menu;
+            var currCmd = self->pParent->UnlockedCmmEntries.Get<CmmPtr>(cmmMenu->VisibleEntryOffset + cmmMenu->ScrollEntryOffset);
             if (currCmd != null)
             {
-                /*
-                var uiResources = _context._objectMethods.GetSubsystem<UUIResources>((UGameInstance*)_common._getUGlobalWork());
+                // GetSubsystem has performance issues so we cache the result (the map's Find function's O(1)?? idk what it's problem is)
+                if (uiResourcesInstance == null)
+                    uiResourcesInstance = _context._objectMethods.GetSubsystem<UUIResources>((UGameInstance*)_common._getUGlobalWork());
+                //var uiResources = _context._objectMethods.GetSubsystem<UUIResources>((UGameInstance*)_common._getUGlobalWork());
+                var uiResources = uiResourcesInstance;
+                var commuDetailPosX = self->Field1FC;
+                var commuDetail = self->pMainActor->CommuTextColLayoutDataTable->GetLayoutDataTableEntry(3); // COMMU_DETAIL
+                var commuDetailPosY = self->pMainActor->CommuTextColLayoutDataTable->GetLayoutDataTableEntry(4); // COMMU_DETAIL_POS_Y
                 if (uiResources != null)
                 {
-                    if (currCmd->ArcanaId <= SocialLinkManager.vanillaCmmLimit)
+                    if (currCmd->ArcanaId <= vanillaCmmLimit)
                     {
-                        var cmmOutlineHelp = uiResources->GetAssetEntry(0xd); // Community/Help/BMD_CmmOutlineHelp
+                        var cmmOutlineHelp = (UBmdAsset*)uiResources->GetAssetEntry(0xd); // Community/Help/BMD_CmmOutlineHelp
                         int dialogNo = 0;
                         int pageNo = 0;
                         _cmmoutlineHelpGetDialog.Invoke(self->pParent, &dialogNo, &pageNo, currCmd);
+                        //_context._utils.Log($"[UCmpCommuDetails::SocialLinkDrawDescription] {(nint)cmmOutlineHelp:X}, dialog ID {dialogNo}, page no {pageNo}");
+                        UCmpCommu_DrawTextFromBmd(cmmOutlineHelp, dialogNo, pageNo,
+                            new FVector(commuDetailPosX + 88, commuDetailPosY->position.Y + 441, 0),
+                            new FVector(commuDetail->position.X, commuDetail->position.Y, 0), drawId);
                     }
                 }
-                */
+                if (_manager.cmmIndexToSlHash.TryGetValue(currCmd->ArcanaId, out var cmmHash) && _manager.activeSocialLinks.TryGetValue(cmmHash, out var customSl))
+                {
+                    if (customSl.CmmOutlineBmd != null)
+                    {
+                        var customOutlineBmd = self->pParent->pParent->GetExtendedCmmEntry(currCmd->ArcanaId)->OutlineBmd;
+                        UCmpCommu_DrawTextFromBmd(customOutlineBmd, 0, currCmd->entry->Rank - 1,
+                            new FVector(commuDetailPosX + 88, commuDetailPosY->position.Y + 441, 0),
+                            new FVector(commuDetail->position.X, commuDetail->position.Y, 0), drawId);
+
+                    }
+                }
             }
         }
 
@@ -604,6 +682,64 @@ namespace p3rpc.slplus.SocialLink
             param_1->Flags2 = param_1->Flags2 | (uint)param_2;
         }
 
+        private unsafe int UCmpCommuDetails_GetVanillaNameSpriteId(int cmmModelId)
+        {
+            return cmmModelId switch
+            {
+                2 => 0x349,
+                3 => 0x33e,
+                4 => 0x33f,
+                5 => 0x345,
+                6 => 0x344,
+                7 => 0x357,
+                8 => 0x340,
+                9 => 0x341,
+                10 => 0x342,
+                0x65 => 0x343,
+                0x66 => 0x346,
+                0x67 => 0x347,
+                0x68 => 0x348,
+                0x69 => 0x34a,
+                0x6a => 0x34e,
+                0x6b => 0x34c,
+                0x6c => 0x34d,
+                0x6d => 0x34b,
+                0x6e => 0x34f,
+                0x6f => 0x350,
+                0x70 => 0x351,
+                0x71 => 0x352,
+                // CMM_16TOWER______NAME_MUTATSU
+                0x72 => _common._getUGlobalWork()->GetBitflag(0x10000289) ? 0x353 : 0x359,
+                0x73 => 0x354,
+                0x74 => 0x355,
+                0x75 => 0x356,
+                _ => 0x349
+            };
+        }
+        
+        private unsafe void UCmpCommuDetails_DrawNameSprite(UCmpCommuDetails* self, int drawId, USprAsset* campSpr, FVector position)
+        {
+            var cmmMenu = self->pParent->Menu;
+            var currCmd = self->pParent->UnlockedCmmEntries.Get<CmmPtr>(cmmMenu->VisibleEntryOffset + cmmMenu->ScrollEntryOffset)->ArcanaId;
+            if (currCmd <= vanillaCmmLimit)
+            {
+                var cmmDetailsMenu = self->pParent->CommuDetailsScene_->Menu;
+                var cmmDetailsFormattedNames = &self->pParent->CommuDetailsScene_->FormattedNames;
+                var cmmDetailsSelected = cmmDetailsMenu->ScrollEntryOffset + cmmDetailsMenu->VisibleEntryOffset;
+                var cmmModelId = cmmDetailsFormattedNames->arr_num > cmmDetailsSelected ? cmmDetailsFormattedNames->allocator_instance[cmmDetailsSelected].ModelId : 0;
+                _drawSprDetailedParams(campSpr, 0, (uint)UCmpCommuDetails_GetVanillaNameSpriteId(cmmModelId), position.X, position.Y, position.Z, 
+                    ConfigColor.ToFSprColor(listColors.DetailsNameSprite), drawId, 0, 1, 1, 0, 1);
+            } else if (_manager.cmmIndexToSlHash.TryGetValue(currCmd, out var cmmHash) && _manager.activeSocialLinks.TryGetValue(cmmHash, out var customSl))
+            {
+                var extendedCmmData = self->pParent->pParent->GetExtendedCmmEntry(currCmd);
+                if (extendedCmmData->HeaderSpr != null)
+                {
+                    _drawSprDetailedParams(extendedCmmData->HeaderSpr, 0, 0, position.X, position.Y, position.Z,
+                        ConfigColor.ToFSprColor(listColors.DetailsNameSprite), drawId, 0, 1, 1, 0, 1);
+                }
+            }
+        }
+
         private unsafe void UCmpCommuDetails_SocialLinkDetailsCharacterDetailImpl(UCmpCommuDetails* self, int drawId, USprAsset* campSpr)
         {
             var cmmMenu = self->pParent->Menu;
@@ -611,8 +747,6 @@ namespace p3rpc.slplus.SocialLink
             if (currCmd == null) return;
             var uiResources = _context._objectMethods.GetSubsystem<UUIResources>((UGameInstance*)_common._getUGlobalWork());
             var plgHandle = (UPlgAsset*)uiResources->GetAssetEntry(0x33);
-            var cmmProfileHelp = (UBmdAsset*)uiResources->GetAssetEntry(0xe);
-            var cmmDataAsset = uiResources->GetAssetEntry(0xf);
             var bgXBase = self->CharDetailBgOffsetX + ((self->pParent->Field288 == 7) ? 967 : 1046); // fVar17
             BPDrawSpr* gDrawer = _common.GetDrawer();
             // background quad
@@ -628,8 +762,39 @@ namespace p3rpc.slplus.SocialLink
             FVector tlP2 = new FVector(bgXBase - 49, 792, 0);
             _drawTriangle(&self->Drawer, &tlP0, &tlP1, &tlP2, ConfigColor.ToFColorBP(listColors.DetailsNameplateTriangle), 1, 1, 0, 1.5f, 0, (byte)drawId);
             // name sprite
-            _drawSprDetailedParams(campSpr, 0, 0x349, bgXBase, 757, 0, ConfigColor.ToFSprColor(listColors.DetailsNameSprite), drawId, 0, 1, 1, 0, 1);
+            UCmpCommuDetails_DrawNameSprite(self, drawId, campSpr, new FVector(bgXBase, 757, 0));
             // profile help text
+            var commuMemberDetail = self->pMainActor->CommuTextColLayoutDataTable->GetLayoutDataTableEntry(8); // COMMU_MEMBER_DETAIL
+            var commuMemberDetailY = self->pMainActor->CommuTextColLayoutDataTable->GetLayoutDataTableEntry(9); // COMMU_MEMBER_DETAIL_POSY
+            if (currCmd->ArcanaId < vanillaCmmLimit)
+            {
+                var cmmProfileHelp = (UBmdAsset*)uiResources->GetAssetEntry(0xe); // Community/Help/BMD_CmmProfileHelp
+                var cmmDataAsset = (UCmmProfileDataAsset*)uiResources->GetAssetEntry(0xf); // UI/Tables/CmmProfileHelpDataAsset
+                var bmdWrapper = _msgHook._createBmdWrapper.Invoke(cmmProfileHelp->mBuf.allocator_instance);
+                // get model id
+                var detailsMenu = self->pParent->CommuDetailsScene_->Menu;
+                var formattedNames = &self->pParent->CommuDetailsScene_->FormattedNames;
+                var detailsMenuSel = detailsMenu->ScrollEntryOffset + detailsMenu->VisibleEntryOffset;
+                var detailsModelId = (detailsMenuSel < formattedNames->arr_num)
+                    ? formattedNames->allocator_instance[detailsMenuSel].ModelId
+                    : 0;
+                // get page id from arcana + model id
+                var bmdProfilePageNum = _getBmdProfilePage(cmmDataAsset, (short)currCmd->ArcanaId, (short)detailsModelId);
+                
+                UCmpCommu_DrawTextFromBmd(cmmProfileHelp, bmdProfilePageNum, 0, 
+                    new FVector(bgXBase + 36, commuMemberDetailY->position.Y + 757, 0),
+                    new FVector(commuMemberDetail->position.X, commuMemberDetail->position.Y, 0), drawId);
+            }
+            if (_manager.cmmIndexToSlHash.TryGetValue(currCmd->ArcanaId, out var cmmHash) && _manager.activeSocialLinks.TryGetValue(cmmHash, out var customSl))
+            {
+                if (customSl.CmmProfileBmd != null)
+                {
+                    var customProfileBmd = self->pParent->pParent->GetExtendedCmmEntry(currCmd->ArcanaId)->ProfileBmd;
+                    UCmpCommu_DrawTextFromBmd(customProfileBmd, 0, 0,
+                        new FVector(bgXBase + 36, commuMemberDetailY->position.Y + 757, 0),
+                        new FVector(commuMemberDetail->position.X, commuMemberDetail->position.Y, 0), drawId);
+                }
+            }
         }
 
         private unsafe void ACmpCommuModelController_TickImpl(ACmpCommuModelController* self, float dt)
@@ -688,7 +853,7 @@ namespace p3rpc.slplus.SocialLink
         }
         private unsafe static int BoolToInt(bool a) => (a) ? 1 : 0;
 
-        private unsafe int UCmpCommu_GetPortraitTexIdForSees()
+        private unsafe int UCmpCommu_GetPortraitTexIdFool()
         {
             var foolBustupId =
                 BoolToInt(UGlobalWork_HasMemberJoined(7)) + // Aigis
@@ -700,15 +865,22 @@ namespace p3rpc.slplus.SocialLink
                     ? foolBustupId + 1 : foolBustupId; // EVT_ARAGAKI_OUT
             return foolBustupId + 1;
         }
+        private unsafe int UCmpCommu_GetPortraitTexIdHierophant(UCmpCommu* self)
+        {
+            var detailsMenuIdx = self->Actor_->CommuDetailsScene_->Menu->VisibleEntryOffset;
+            return 10 + ((detailsMenuIdx == 1) ? 1 : 0);
+        }
         // FUN_14129c4d0 (mostly)
-        private unsafe int UCmpCommu_GetPortraitTexIdVanilla(int id)
+        private unsafe int UCmpCommu_GetPortraitTexIdVanilla(UCmpCommu* self, int id)
         {
             return id switch
             {
+                1 => UCmpCommu_GetPortraitTexIdFool(),
                 2 => 6,
                 3 => 7,
                 4 => 8,
                 5 => 9,
+                6 => UCmpCommu_GetPortraitTexIdHierophant(self),
                 7 => 0xc,
                 8 => 0xd,
                 9 => 0xe,
@@ -725,19 +897,18 @@ namespace p3rpc.slplus.SocialLink
                 0x14 => 0x19,
                 0x15 => 0x1a,
                 0x16 => 0x1b,
-                _ => UCmpCommu_GetPortraitTexIdForSees(),
+                _ => 1,
             };
         }
         private unsafe UTexture2D* UCmpCommu_GetPortraitTexture(UCmpCommu* self)
         {
             var cmmMenu = self->Actor_->Menu;
             var currCmd = self->Actor_->UnlockedCmmEntries.Get<CmmPtr>(cmmMenu->VisibleEntryOffset + cmmMenu->ScrollEntryOffset)->ArcanaId;
-            if (currCmd <= SocialLinkManager.vanillaCmmLimit)
-                return (&self->pCommuBustupAry)[UCmpCommu_GetPortraitTexIdVanilla(currCmd)];
+            if (currCmd <= vanillaCmmLimit)
+                return (&self->pCommuBustupAry)[UCmpCommu_GetPortraitTexIdVanilla(self, currCmd)];
             if (_manager.cmmIndexToSlHash.TryGetValue(currCmd, out var cmmHash) && _manager.activeSocialLinks.TryGetValue(cmmHash, out var customSl))
                 return self->GetCustomSlPortrait(currCmd);
             return null;
-            //return (&self->pCommuBustupAry)[UCmpCommu_GetPortraitTexIdVanilla(1)];
         }
 
         private unsafe void UCmpCommu_DetailsDrawPortraitImpl(UCmpCommu* self, uint drawId)
@@ -756,6 +927,8 @@ namespace p3rpc.slplus.SocialLink
                     57, 0, 2048, 2048, &commuBupTint, 1, 1, 0, &commuBupTexcoord0, &commuBupTexcoord1,
                     commuBup, 4, (int)drawId);
             }
+            //var currCmd = self->Actor_->UnlockedCmmEntries.Get<CmmPtr>(self->MenuSelected);
+            //_manager.UCommunityHandler_CmmCheckReverseImpl(currCmd);
             //_context._utils.Log($"[UCmpCommu::DetailsDrawPortraitImpl] GetPortraitTexture got {(nint):X}");
         }
     }
