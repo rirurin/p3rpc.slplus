@@ -26,7 +26,7 @@ namespace p3rpc.slplus.Hooking
         public unsafe delegate void UAssetLoader_LoadTargetAsset(UAssetLoader* self, FString* name, nint dest);
 
         private string UAssetLoader_LoadQueuedAssets_SIG = "48 89 E0 41 56 48 81 EC 90 00 00 00";
-        private UAssetLoader_LoadQueuedAssets _loadQueuedAssets;
+        public UAssetLoader_LoadQueuedAssets _loadQueuedAssets;
         public unsafe delegate void UAssetLoader_LoadQueuedAssets(UAssetLoader* self);
 
         public Dictionary<nint, (Action<nint> onLoadCb, string fileName)> MemoryToNotify = new();

@@ -160,6 +160,15 @@ namespace p3rpc.slplus.SocialLink
             [FieldOffset(0x8)] public FString name;
             [FieldOffset(0x18)] public int state;
         }
+
+        [StructLayout(LayoutKind.Explicit, Size = 0x18)]
+        public unsafe struct CustomCmmData
+        {
+            [FieldOffset(0x0)] public UTexture2D* RankUpName;
+            [FieldOffset(0x8)] public USprAsset* RankUpSpr;
+            [FieldOffset(0x10)] public byte bRankUpNameLoading;
+        }
+
         public override void Register()
         {
             _common = GetModule<CommonHooks>();
@@ -220,9 +229,20 @@ namespace p3rpc.slplus.SocialLink
             }
             unsafe
             { // Extend UCmpCommu to store our custom bustup data without UE calling GC
-                var newCmpCommuSize = 0xc60 + (uint)(activeSocialLinks.Count * sizeof(UCmpCommuExtendedEntry));
+                var newCmpCommuSize = (uint)sizeof(UCmpCommu) + (uint)(activeSocialLinks.Count * sizeof(UCmpCommuExtendedEntry));
                 _context._utils.Log($"New size of UCmpCommu is 0x{newCmpCommuSize:X}");
                 _context._classMethods.AddUnrealClassExtender("CmpCommu", newCmpCommuSize, null);
+                // And extend UCommunityWork to fit everything else in
+                var newCmmWorkSize = (uint)sizeof(UCommunityWork) + (uint)(activeSocialLinks.Count * sizeof(CustomCmmData));
+                _context._utils.Log($"New size of UCommunityWork is 0x{newCmmWorkSize:X}");
+                _context._classMethods.AddUnrealClassExtender("CommunityWork", newCmmWorkSize, x =>
+                {
+                    UCommunityWork* cmmWork = (UCommunityWork*)x;
+                    // make sure this is zeroed out
+                    // we'll be lazy loading these assets which requires checking that particular fields are null
+                    NativeMemory.Clear(cmmWork + 1, (nuint)(activeSocialLinks.Count * sizeof(CustomCmmData)));
+                });
+                // TODO: Add ability to hook onto existing social links to change target assets for them
             }
         }
 

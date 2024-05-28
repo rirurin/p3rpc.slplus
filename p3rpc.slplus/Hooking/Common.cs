@@ -9,6 +9,7 @@ namespace p3rpc.slplus.Hooking
         public IUIMethods.UIDraw_SetPresetBlendState _setPresetBlendState;
         public IUIMethods.GetSpriteItemMaskInstance _getSpriteItemMaskInstance;
         public IUIMethods.AUIDrawBaseActor_DrawPlg _drawPlg;
+        public IUIMethods.AUIDrawBaseActor_DrawSpr _drawSpr;
         public IUIMethods.AUIDrawBaseActor_SetRenderTarget _setRenderTarget;
 
         public unsafe BPDrawSpr* GetDrawer() => (BPDrawSpr*)(_getSpriteItemMaskInstance() + 0x20);
@@ -20,6 +21,7 @@ namespace p3rpc.slplus.Hooking
             _context._sharedScans.CreateListener<IUIMethods.UIDraw_SetPresetBlendState>(addr => _context._utils.AfterSigScan(addr, _context._utils.GetDirectAddress, addr => _setPresetBlendState = _context._utils.MakeWrapper<IUIMethods.UIDraw_SetPresetBlendState>(addr)));
             _context._sharedScans.CreateListener<IUIMethods.GetSpriteItemMaskInstance>(addr => _context._utils.AfterSigScan(addr, _context._utils.GetIndirectAddressShort, addr => _getSpriteItemMaskInstance = _context._utils.MakeWrapper<IUIMethods.GetSpriteItemMaskInstance>(addr)));
             _context._sharedScans.CreateListener<IUIMethods.AUIDrawBaseActor_DrawPlg>(addr => _context._utils.AfterSigScan(addr, _context._utils.GetIndirectAddressShort, addr => _drawPlg = _context._utils.MakeWrapper<IUIMethods.AUIDrawBaseActor_DrawPlg>(addr)));
+            _context._sharedScans.CreateListener<IUIMethods.AUIDrawBaseActor_DrawSpr>(addr => _context._utils.AfterSigScan(addr, _context._utils.GetDirectAddress, addr => _drawSpr = _context._utils.MakeWrapper<IUIMethods.AUIDrawBaseActor_DrawSpr>(addr)));
             _context._sharedScans.CreateListener<IUIMethods.AUIDrawBaseActor_SetRenderTarget>(addr => _context._utils.AfterSigScan(addr, _context._utils.GetDirectAddress, addr => _setRenderTarget = _context._utils.MakeWrapper<IUIMethods.AUIDrawBaseActor_SetRenderTarget>(addr)));
         }
         public override void Register()
