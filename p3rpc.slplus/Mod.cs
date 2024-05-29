@@ -97,6 +97,7 @@ namespace p3rpc.slplus
             _runtime.AddModule<MessageHooks>();
             _runtime.AddModule<RankUpHooks>();
             _runtime.AddModule<MailService>();
+            _runtime.AddModule<NpcService>();
 
             _runtime.AddModule<EvtPreDataService>();
             _runtime.RegisterModules();

@@ -363,6 +363,8 @@ namespace p3rpc.slplus.SocialLink
 
         public unsafe void UCmpCommu_InitImpl(UCmpCommu* self, UAssetLoader* loader)
         {
+            // This may be moved to a separate structure at a later point, since it will reload when exiting from a save file
+            // (we only need to load it once)
             // Load our added resources first so we can piggyback on UAssetLoader::LoadQueuedAssets
             _context._utils.Log($"[UCmpCommu::Init] instance: 0x{(nint)self:X}");
             foreach (var slIdToHash in cmmIndexToSlHash)
