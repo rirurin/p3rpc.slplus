@@ -14,6 +14,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Unreal.AtlusScript.Interfac
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "p3rpc.classconstructor.Interfaces", "..\p3rpc.classconstructor\p3rpc.classconstructor.Interfaces\p3rpc.classconstructor.Interfaces.csproj", "{5898682E-402E-4BC8-94BB-723A768ED429}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Unreal.ObjectsEmitter.Interfaces", "include\ObjectsEmitter\Unreal.ObjectsEmitter.Interfaces\Unreal.ObjectsEmitter.Interfaces.csproj", "{507D0A93-523D-45A5-8A41-B9D4DA6CE518}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +46,10 @@ Global
 		{5898682E-402E-4BC8-94BB-723A768ED429}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5898682E-402E-4BC8-94BB-723A768ED429}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5898682E-402E-4BC8-94BB-723A768ED429}.Release|Any CPU.Build.0 = Release|Any CPU
+		{507D0A93-523D-45A5-8A41-B9D4DA6CE518}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{507D0A93-523D-45A5-8A41-B9D4DA6CE518}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{507D0A93-523D-45A5-8A41-B9D4DA6CE518}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{507D0A93-523D-45A5-8A41-B9D4DA6CE518}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

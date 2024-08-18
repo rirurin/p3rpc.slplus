@@ -3,6 +3,7 @@ using p3rpc.commonmodutils;
 using p3rpc.nativetypes.Interfaces;
 using p3rpc.slplus.Configuration;
 using p3rpc.slplus.Event;
+using p3rpc.slplus.Field;
 using p3rpc.slplus.Hooking;
 using p3rpc.slplus.Interfaces;
 using p3rpc.slplus.Messages;
@@ -67,6 +68,8 @@ namespace p3rpc.slplus
             _configuration = context.Configuration;
             _modConfig = context.ModConfig;
 
+            //Debugger.Launch();
+
             var process = Process.GetCurrentProcess().MainModule;
             if (process == null) throw new Exception($"[{_modConfig.ModName}] Process is null");
             var baseAddress = process.BaseAddress;
@@ -100,6 +103,7 @@ namespace p3rpc.slplus
             _runtime.AddModule<NpcService>();
 
             _runtime.AddModule<EvtPreDataService>();
+            _runtime.AddModule<FldNpcActorHooks>();
             _runtime.RegisterModules();
 
             _modLoader.AddOrReplaceController<ICommuListColors>(_owner, _runtime.GetModule<CampMenuHooks>().listColors);

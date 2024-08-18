@@ -85,25 +85,24 @@ namespace p3rpc.slplus.Event
             return newAdapter;
         }
 
-        public static EvtPreDataNativeAdapter? NewFromYamlModel(SocialLinkUtilities _context, EvtPreDataModel model)
+        public unsafe static EvtPreDataNativeAdapter? NewFromYamlModel(SocialLinkUtilities _context, EvtPreDataModel model)
         {
-            return null;
-            /*
             var newAdapter = new EvtPreDataNativeAdapter(); 
             var errorReporter = new EvtPreDataNativeAdapterErrors(newAdapter);
             newAdapter.FromYamlModelCommon(_context, model);
-            if (model.EventLevel != null) newAdapter.EventLevel = _context.MakeFString(model.EventLevel); else errorReporter.MissingParameters.Add("EventLevel");
+            if (model.EventLevel != null) newAdapter.EventLevel = _context.MakeFStringRef(model.EventLevel); else errorReporter.MissingParameters.Add("EventLevel");
             if (model.EventSublevels != null) newAdapter.EventSublevels = newAdapter.SublevelHookFromYamlModel(_context, model); else errorReporter.MissingParameters.Add("EventSublevels");
             if (model.LightScenarioSublevels != null) newAdapter.LightScenarioSublevels = newAdapter.LightScenarioFromYamlModel(_context, model); else errorReporter.MissingParameters.Add("LightScenarioSublevels");
+            /*
             if (model.DungeonSublevel != null) newAdapter.DungeonSublevel = newAdapter.DungeonSublevelHookFromYamlModel(_context, model.DungeonSublevel); else errorReporter.MissingParameters.Add("DungeonSublevel");
             if (model.bDisableAutoLoadFirstLightingScenarioLevel != null) newAdapter.bDisableAutoLoadFirstLightingScenarioLevel = model.bDisableAutoLoadFirstLightingScenarioLevel; else errorReporter.MissingParameters.Add("bDisableAutoLoadFirstLightingScenarioLevel");
             if (model.bForceDisableUseCurrentTimeZone != null) newAdapter.bForceDisableUseCurrentTimeZone = model.bForceDisableUseCurrentTimeZone; else errorReporter.MissingParameters.Add("bForceDisableUseCurrentTimeZone");
             if (model.ForcedCldTimeZoneValue != null) newAdapter.ForcedCldTimeZoneValue = model.ForcedCldTimeZoneValue; else errorReporter.MissingParameters.Add("ForcedCldTimeZoneValue");
             if (model.ForceMonth != null) newAdapter.ForceMonth = model.ForceMonth; else errorReporter.MissingParameters.Add("ForceMonth");
             if (model.ForceDay != null) newAdapter.ForceDay = model.ForceDay; else errorReporter.MissingParameters.Add("ForceDay");
+            */
             errorReporter.ReportErrors(_context);
             return (errorReporter.MissingParameters.Count == 0) ? newAdapter : null;
-            */
         }
     }
 
