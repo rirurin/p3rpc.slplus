@@ -84,20 +84,6 @@ namespace p3rpc.slplus.Modules
             return 0;
         }
 
-        private string ULevelStreaming_GetStreamingLevel_SIG = "48 89 54 24 ?? 55 53 56 57 41 55 41 56 41 57 48 8B EC 48 83 EC 40";
-        public unsafe delegate ULevelStreaming* ULevelStreaming_GetStreamingLevel(UObject* WorldContextObject, FName Name);
-        private IHook<ULevelStreaming_GetStreamingLevel> _getStreamingLevel;
-        public unsafe ULevelStreaming* ULevelStreaming_GetStreamingLevelImpl(UObject* WorldContextObject, FName Name)
-        {
-            ULevelStreaming* Result = _getStreamingLevel.OriginalFunction(WorldContextObject, Name);
-            if (Result == null)
-            {
-                _context._utils.Log($"ULevelStreaming::GetStreamingLevel returned null! {_context._objectMethods.GetFName(Name)} , OVERRIDING");
-                Result = GetModule<EvtPreDataService>().NEW_LEVEL;
-            }
-            return Result;
-        }
-
         private string AAtlEvtPlayObject_OnLoadLevelStreaming_SIG = "48 89 4C 24 ?? 55 53 56 57 41 55 48 8D 6C 24 ?? 48 81 EC 90 00 00 00";
         public unsafe delegate void AAtlEvtPlayObject_OnLoadLevelStreaming(AAtlEvtPlayObject* self);
         private IHook<AAtlEvtPlayObject_OnLoadLevelStreaming> _onLoadLevelStreaming;
@@ -137,9 +123,6 @@ namespace p3rpc.slplus.Modules
 
             _context._utils.SigScan(AAtlEvtPlayObject_OnLoadLevelStreaming_SIG, "AAtlEvtPlayObject::OnLoadLevelStreaming", _context._utils.GetDirectAddress,
                 addr => _onLoadLevelStreaming = _context._utils.MakeHooker<AAtlEvtPlayObject_OnLoadLevelStreaming>(AAtlEvtPlayObject_OnLoadLevelStreamingImpl, addr));
-
-            _context._utils.SigScan(ULevelStreaming_GetStreamingLevel_SIG, "ULevelStreaming::GetStreamingLevel", _context._utils.GetDirectAddress,
-                addr => _getStreamingLevel = _context._utils.MakeHooker<ULevelStreaming_GetStreamingLevel>(ULevelStreaming_GetStreamingLevelImpl, addr));
 
             /*
             _context._utils.SigScan(AAtlEvtPlayObject_OnLoadFieldLevelStreaming_SIG, "AAtlEvtPlayObject::OnLoadFieldLevelStreaming", _context._utils.GetDirectAddress,

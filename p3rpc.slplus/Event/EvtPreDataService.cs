@@ -1,5 +1,6 @@
 ﻿using p3rpc.commonmodutils;
 using p3rpc.nativetypes.Interfaces;
+using p3rpc.slplus.Field;
 using p3rpc.slplus.Parsing;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Hooks.Definitions.X64;
@@ -19,12 +20,7 @@ namespace p3rpc.slplus.Event
         public unsafe delegate byte UAtlEvtSubsystem_DoesLevelStreamingLevelExist(UAtlEvtSubsystem* self, UWorld* worldOut, FString* pathOut);
         private IHook<UAtlEvtSubsystem_DoesLevelStreamingLevelExist> _doesLevelStreamingExist;
 
-        private string ULevelStreamingDynamic_LoadLevelInstance_SIG = "E8 ?? ?? ?? ?? 48 8B 4D ?? 49 89 06 48 85 C9 74 ?? E8 ?? ?? ?? ?? 48 8B 4D ?? 48 85 C9 74 ?? E8 ?? ?? ?? ?? 48 8B 9C 24 ?? ?? ?? ??";
-        [Function(CallingConventions.Microsoft)]
-        public unsafe delegate ULevelStreaming* ULevelStreamingDynamic_LoadLevelInstance(UObject* WorldContextObject, FString* LevelName, FVector* Location, FRotator* Rotation, byte* bOutSuccess, FString* OptionalLevelNameOverride);
-        private ULevelStreamingDynamic_LoadLevelInstance? _loadLevelInstance;
-
-        public unsafe ULevelStreaming* NEW_LEVEL;
+        private NewLevelRegistry _NewLevelRegistry;
 
         public unsafe byte UAtlEvtSubsystem_DoesLevelStreamingLevelExistImpl(UAtlEvtSubsystem* self, UWorld* BaseWorld, FString* StreamPath)
         {
@@ -38,21 +34,22 @@ namespace p3rpc.slplus.Event
                 FRotator OriginRotator = new FRotator(0, 0, 0);
                 byte bSucceeded = 0;
 
-                FString* StreamPathCopy = GetModule<SocialLinkUtilities>().MakeFStringRef(StreamPathStr);
-                FString* LevelNameOverride = GetModule<SocialLinkUtilities>().MakeFStringRef("");
+                SocialLinkUtilities SlUtils = GetModule<SocialLinkUtilities>();
+                FString* StreamPathCopy = SlUtils.MakeFStringRef(StreamPathStr);
+                FString* LevelNameOverride = SlUtils.MakeFStringRef("");
 
                 // LoadStreamingLevel doesn't work unless the level is added into the level hierachy (LV_Xrd777_P)
-                ULevelStreaming* StreamedLevel = _loadLevelInstance.Invoke((UObject*)BaseWorld, StreamPathCopy, &OriginLocation, &OriginRotator, &bSucceeded, LevelNameOverride);
+                ULevelStreaming* StreamedLevel = _NewLevelRegistry._loadLevelInstance.Invoke((UObject*)BaseWorld, StreamPathCopy, &OriginLocation, &OriginRotator, &bSucceeded, LevelNameOverride);
                 _context._memoryMethods.FMemory_Free(StreamPathCopy);
                 _context._memoryMethods.FMemory_Free(LevelNameOverride);
                 if (bSucceeded == 1 && StreamedLevel != null)
                 {
                     _context._logger.WriteLine($"Added level {StreamPathStr} to the level streaming registry: 0x{(nint)StreamedLevel:X}");
-                    NEW_LEVEL = StreamedLevel;
-                    //_context._utils.Log($"Added level {StreamPathStr} to the level streaming registry: 0x{(nint)StreamedLevel:X}");
+                    _NewLevelRegistry.NewLevels.Add(StreamPathStr, (nint)StreamedLevel);
+
                 } else
                 {
-                    _context._utils.Log($"LOADING LEVEL INSTANCE FAILED: {StreamPathStr}", System.Drawing.Color.Red, LogLevel.Error);
+                    _context._logger.WriteLine($"LOADING LEVEL INSTANCE FAILED: {StreamPathStr}");
                 }
                 bInExistingLevelList = bSucceeded;
             }
@@ -71,11 +68,10 @@ namespace p3rpc.slplus.Event
                 addr => _getEvtPreData = _context._utils.MakeHooker<UAtlEvtSubsystem_GetEvtPreData>(UAtlEvtSubsystem_GetEvtPreDataImpl, addr));
             _context._utils.SigScan(UAtlEvtSubsystem_DoesLevelStreamingLevelExist_SIG, "UAtlEvtSubsystem::DoesLevelStreamingLevelExist", _context._utils.GetDirectAddress,
                 addr => _doesLevelStreamingExist = _context._utils.MakeHooker<UAtlEvtSubsystem_DoesLevelStreamingLevelExist>(UAtlEvtSubsystem_DoesLevelStreamingLevelExistImpl, addr));
-            _context._utils.SigScan(ULevelStreamingDynamic_LoadLevelInstance_SIG, "ULevelStreamingDynamic::LoadLevelInstance", _context._utils.GetIndirectAddressShort,
-                addr => _loadLevelInstance = _context._utils.MakeWrapper<ULevelStreamingDynamic_LoadLevelInstance>(addr));
         }
         public override void Register()
         {
+            _NewLevelRegistry = GetModule<NewLevelRegistry>();
         }
 
         // FString::FString(const FString& a1)

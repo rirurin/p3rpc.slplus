@@ -104,6 +104,7 @@ namespace p3rpc.slplus
 
             _runtime.AddModule<EvtPreDataService>();
             _runtime.AddModule<FldNpcActorHooks>();
+            _runtime.AddModule<NewLevelRegistry>();
             _runtime.RegisterModules();
 
             _modLoader.AddOrReplaceController<ICommuListColors>(_owner, _runtime.GetModule<CampMenuHooks>().listColors);
