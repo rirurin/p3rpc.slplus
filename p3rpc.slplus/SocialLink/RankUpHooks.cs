@@ -186,6 +186,7 @@ namespace p3rpc.slplus.SocialLink
         };
         public unsafe RankUpHooks(SocialLinkContext context, Dictionary<string, ModuleBase<SocialLinkContext>> modules) : base(context, modules)
         {
+            /*
             _context._utils.SigScan(RankUpSendMessageSetArcanaNo_SIG, "RankUpSendMessageSetArcanaNo", _context._utils.GetDirectAddress,
                 addr => _rankUpMessage = _context._utils.MakeHooker<RankUpSendMessageSetArcanaNo>(RankUpSendMessageSetArcanaNoImpl, addr));
 
@@ -205,6 +206,7 @@ namespace p3rpc.slplus.SocialLink
                 addr => _drawName = _context._utils.MakeHooker<AUICmmRankUpDraw_UICmmDrawLetter>(AUICmmRankUpDraw_UICmmDrawLetterImpl, addr));
             _context._utils.SigScan(UPlgAsset_DrawPlg1414e7820_SIG, "UPlgAsset::DrawPlg1414e7820", _context._utils.GetDirectAddress,
                 addr => _drawPlg = _context._utils.MakeWrapper<UPlgAsset_DrawPlg1414e7820>(addr));
+            */
         }
         public override void Register()
         {

@@ -28,6 +28,8 @@ namespace p3rpc.slplus.Event
             string StreamPathStr = StreamPath->ToString();
             _context._utils.Log($"UAtlEvtSubsystem::DoesLevelStreamingLevelExist: {StreamPathStr}");
             byte bInExistingLevelList = _doesLevelStreamingExist.OriginalFunction(self, BaseWorld, StreamPath);
+            if (bInExistingLevelList == 0 && _NewLevelRegistry.NewLevels.TryGetValue(StreamPathStr, out _))
+                bInExistingLevelList = 1;
             if (bInExistingLevelList == 0)
             {
                 FVector OriginLocation = new FVector(0, 0, 0);
