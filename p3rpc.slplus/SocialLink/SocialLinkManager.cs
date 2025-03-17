@@ -63,6 +63,7 @@ namespace p3rpc.slplus.SocialLink
             //_context._utils.SigScan(UCommunityHandler_ConvertToCommunityFormat_SIG, "UCommunityHandler::ConvertToCommunityFormat", _context._utils.GetDirectAddress,
             //    addr => _convertToCommunityFormat = _context._utils.MakeHooker<UCommunityHandler_ConvertToCommunityFormat>(UCommunityHandler_ConvertToCommunityFormatImpl, addr));
 
+            
             _context._utils.SigScan(UCommunityHandler_GetCmmEntry_SIG, "UCommunityHandler::GetCmmEntry", _context._utils.GetIndirectAddressShort,
                 addr => _getCmmEntry = _context._utils.MakeHooker<UCommunityHandler_GetCmmEntry>(UCommunityHandler_GetCmmEntryImpl, addr));
             _context._utils.SigScan(UCommunityHandler_GetSocialLinkNames_SIG, "UCommunityHandler::GetSocialLinkNames", _context._utils.GetDirectAddress,
@@ -230,14 +231,15 @@ namespace p3rpc.slplus.SocialLink
                 TryRegisterMessageAssetHook(newSl.MailText, slplusPath);
                 RegisterSocialLink(slHash, newSl);
             }
+            
             unsafe
             { // Extend UCmpCommu to store our custom bustup data without UE calling GC
                 var newCmpCommuSize = (uint)sizeof(UCmpCommu) + (uint)(activeSocialLinks.Count * sizeof(UCmpCommuExtendedEntry));
-                _context._utils.Log($"New size of UCmpCommu is 0x{newCmpCommuSize:X}");
+                _context._utils.Log($"New size of UCmpCommu is 0x{newCmpCommuSize:X} (was 0x{sizeof(UCmpCommu):X})");
                 _context._classMethods.AddUnrealClassExtender("CmpCommu", newCmpCommuSize, null);
                 // And extend UCommunityWork to fit everything else in
                 var newCmmWorkSize = (uint)sizeof(UCommunityWork) + (uint)(activeSocialLinks.Count * sizeof(CustomCmmData));
-                _context._utils.Log($"New size of UCommunityWork is 0x{newCmmWorkSize:X}");
+                _context._utils.Log($"New size of UCommunityWork is 0x{newCmmWorkSize:X} (was 0x{sizeof(UCommunityWork):X})");
                 _context._classMethods.AddUnrealClassExtender("CommunityWork", newCmmWorkSize, x =>
                 {
                     UCommunityWork* cmmWork = (UCommunityWork*)x;
@@ -292,7 +294,7 @@ namespace p3rpc.slplus.SocialLink
                 var pCurrMemberFmt = (FCommunityMemberFormat*)self->pMemberFormatTable->RowMap.elements[id].Value;
                 var pCurrNameFmt = (FCommunityNameFormat*)self->pNameFormatTable->RowMap.elements[id].Value;
                 var nameGot = pCurrNameFmt->CampDispCommunityCharacterNameB;
-                if (CmmIdToNameChangeBitflag.TryGetValue(id, out uint bitflag) && !_common._getUGlobalWork()->GetBitflag(bitflag))
+                if (CmmIdToNameChangeBitflag.TryGetValue(id, out uint bitflag) && !_common.GetUGlobalWorkEx().GetBitflag(bitflag))
                     nameGot = pCurrNameFmt->CampDispCommunityCharacterNameA;
                 //_context._utils.Log(_context._objectMethods.GetFName(nameGot));
                 for (int i = 1; i <= 10; i++)
@@ -317,7 +319,7 @@ namespace p3rpc.slplus.SocialLink
 
         public unsafe void UCommunityHandler_GetCommunityNameFromIdImpl(FString* nameOut, byte id)
         {
-            UCommunityHandler* cmmHandle = _common._getUGlobalWork()->pCommunityWork->pCommunityHandle;
+            UCommunityHandler* cmmHandle = _common.GetUGlobalWorkEx().GetCommunityWork()->pCommunityHandle;
             if (id <= vanillaCmmLimit)
             {
                 var cmmNameFmt = (FCommunityNameFormat*)cmmHandle->pNameFormatTable->RowMap.elements[id].Value;
@@ -334,7 +336,7 @@ namespace p3rpc.slplus.SocialLink
         public unsafe byte UCommunityHandler_CmmCheckReverseImpl(CmmPtr* cmm)
         {
             // GetBitflag(CMM_00FOOL_______REVERSE - 1 + cmm->ArcanaId)
-            if (cmm->ArcanaId <= vanillaCmmLimit) return _common._getUGlobalWork()->GetBitflag((uint)(cmm->ArcanaId + 0x1000003f)) ? (byte) 1 : (byte)0;
+            if (cmm->ArcanaId <= vanillaCmmLimit) return _common.GetUGlobalWorkEx().GetBitflag((uint)(cmm->ArcanaId + 0x1000003f)) ? (byte) 1 : (byte)0;
             return 0;
         }
 
@@ -367,6 +369,7 @@ namespace p3rpc.slplus.SocialLink
             // (we only need to load it once)
             // Load our added resources first so we can piggyback on UAssetLoader::LoadQueuedAssets
             _context._utils.Log($"[UCmpCommu::Init] instance: 0x{(nint)self:X}");
+            
             foreach (var slIdToHash in cmmIndexToSlHash)
             {
                 var pCustomCommuBustup = &((UCmpCommuExtendedEntry*)(self + 1))[slIdToHash.Key - vanillaCmmLimit - 1];
@@ -404,7 +407,7 @@ namespace p3rpc.slplus.SocialLink
                     }
                     if (customSl.MailText != null)
                     {
-                        var cmmWork = _common._getUGlobalWork()->pCommunityWork;
+                        var cmmWork = _common.GetUGlobalWorkEx().GetCommunityWork();
                         var customCmm = &((CustomCmmData*)(cmmWork + 1))[slIdToHash.Key - vanillaCmmLimit - 1];
                         _assetLoader.LoadAsset(
                             loader, Constants.MakeAssetPath($"{Constants.MailTextBmds}{customSl.MailText}"),
@@ -412,6 +415,7 @@ namespace p3rpc.slplus.SocialLink
                     }
                 }
             }
+            
             _commuInit.OriginalFunction(self, loader);
         }
     }

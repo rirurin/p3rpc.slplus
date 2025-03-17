@@ -13,6 +13,7 @@ namespace p3rpc.slplus.SocialLink
     public class VelvetRoomHooks : ModuleBase<SocialLinkContext>
     {
         private string UUICombineCalc_CalculateSocialLinkExpBonus_SIG = "48 89 5C 24 ?? 48 89 6C 24 ?? 57 48 83 EC 20 48 8B EA 48 8B F9 E8 ?? ?? ?? ?? 48 8B D8 48 85 C0";
+        private string UUICombineCalc_CalculateSocialLinkExpBonus_SIG_EpAigis = "48 89 5C 24 ?? 56 48 83 EC 20 48 8B DA 48 8B F1 E8 ?? ?? ?? ?? 84 C0 0F 85 ?? ?? ?? ??";
         private IHook<UUICombineCalc_CalculateSocialLinkExpBonus> _calcSocialLinkBonus;
         public unsafe delegate long UUICombineCalc_CalculateSocialLinkExpBonus(UUICombineCalc* self, FDatUnitPersonaEntry* persona);
 
@@ -25,6 +26,8 @@ namespace p3rpc.slplus.SocialLink
         public unsafe delegate long UUICombineCalc_CalculateResummonCost(UUICombineCalc* self, FDatUnitPersonaEntry* persona);
 
         private string UDatSkill_Instance_SIG = "48 89 05 ?? ?? ?? ?? EB ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 75 ??";
+        private string UDatSkill_Instance_SIG_EpAigis = "48 89 05 ?? ?? ?? ?? EB ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 75 ??";
+        private MultiSignature DatSkillInstanceMS;
         private unsafe UDatSkill** _datSkill;
 
         private string UDatPersona_Instance_SIG = "48 89 05 ?? ?? ?? ?? 8B 40 ?? 3B 05 ?? ?? ?? ?? 7D ?? 99 48 31 3D ?? ?? ?? ??";
@@ -201,11 +204,11 @@ namespace p3rpc.slplus.SocialLink
 
         public unsafe long UUICombineCalc_CalculateSocialLinkExpBonusImpl(UUICombineCalc* self, FDatUnitPersonaEntry* persona)
         {
-            var cmmHandle = _common._getUGlobalWork()->pCommunityWork->pCommunityHandle;
+            var cmmHandle = _common.GetUGlobalWorkEx().GetCommunityWork()->pCommunityHandle;
             if (cmmHandle != null)
             {
                 var arcanaRank = GetArcanaRankForVelvetRoom(cmmHandle, UDatPersona_GetPersonaArcana(persona->Id));
-                var expBonusDegree = _common._getUGlobalWork()->GetBitflag(0x3000002e) // BTL_SHUFFLE_LOVERS_BONUS
+                var expBonusDegree = _common.GetUGlobalWorkEx().GetBitflag(0x3000002e) // BTL_SHUFFLE_LOVERS_BONUS
                         ? self->CommunityRank_->Data.allocator_instance[arcanaRank].HighBonus
                         : self->CommunityRank_->Data.allocator_instance[arcanaRank].Bonus;
                 return _calcBonusExp.Invoke(persona, expBonusDegree);
@@ -222,7 +225,7 @@ namespace p3rpc.slplus.SocialLink
                     var currSkillLevel = (*_datSkill)->TableSkill->Data.allocator_instance[persona->GetSkill(i)].targetLv;
                     if (currSkillLevel > maxSkillLevel) maxSkillLevel = currSkillLevel;
                 }
-                var cmmHandle = _common._getUGlobalWork()->pCommunityWork->pCommunityHandle;
+                var cmmHandle = _common.GetUGlobalWorkEx().GetCommunityWork()->pCommunityHandle;
                 var personaArcana = UDatPersona_GetPersonaArcana(persona->Id);
                 var arcanaRank = (personaArcana <= SocialLinkManager.vanillaCmmLimit) ? _manager.UCommunityHandler_GetCmmEntryImpl(cmmHandle, personaArcana)->entry->Rank : 0;
                 return _context._objectMethods.ProcessEvent<int>((UObject*)self->CombineCalcFunction_, "GetBookDrawOut",
@@ -241,14 +244,14 @@ namespace p3rpc.slplus.SocialLink
         {
             var cmbCurrPersona = (FDatUnitPersonaEntry*)(uiCombine + 0x1c4);
             var cmbCurrPersonaArcana = UDatPersona_GetPersonaArcana(cmbCurrPersona->Id);
-            var cmmHandle = _common._getUGlobalWork()->pCommunityWork->pCommunityHandle;
+            var cmmHandle = _common.GetUGlobalWorkEx().GetCommunityWork()->pCommunityHandle;
             return (ushort)GetArcanaRankForVelvetRoom(cmmHandle, cmbCurrPersonaArcana);
         }
         public unsafe void APersonaStatus_SetSocialLinkBonusImpl(APersonaStatus* self, ushort id, int points)
         { // FUN_1414804b0
             var personaStatusDraw = self->pPersonaStatusDraw;
-            var cmmHandler = _common._getUGlobalWork()->pCommunityWork->pCommunityHandle;
-            personaStatusDraw->ArcanaRank = GetArcanaRankForVelvetRoom(_common._getUGlobalWork()->pCommunityWork->pCommunityHandle, UDatPersona_GetPersonaArcana(id));
+            var cmmHandler = _common.GetUGlobalWorkEx().GetCommunityWork()->pCommunityHandle;
+            personaStatusDraw->ArcanaRank = GetArcanaRankForVelvetRoom(_common.GetUGlobalWorkEx().GetCommunityWork()->pCommunityHandle, UDatPersona_GetPersonaArcana(id));
             personaStatusDraw->ExpBonusPoints = points;
         }
     }

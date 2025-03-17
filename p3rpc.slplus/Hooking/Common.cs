@@ -27,5 +27,12 @@ namespace p3rpc.slplus.Hooking
         public override void Register()
         {
         }
+
+        public unsafe IGlobalWork GetUGlobalWorkEx()
+        {
+            var data = _getUGlobalWork();
+            if (_context.bIsAigis) { return new nativetypes.Interfaces.Astrea.GlobalWork((nativetypes.Interfaces.Astrea.UGlobalWork*)data); }
+            else { return new GlobalWork(data); }
+        }
     }
 }

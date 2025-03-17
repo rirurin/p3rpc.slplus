@@ -108,7 +108,7 @@ namespace p3rpc.slplus.SocialLink
         {
             var mailIncoming = (UMailIncomingDataAsset*)_context._objectMethods.GetSubsystem<UUIResources>((UGameInstance*)_common._getUGlobalWork())->GetAssetEntry(0x10);
             var mailData = &mailIncoming->Data;
-            var mailSave = &_common._getUGlobalWork()->Mail;
+            var mailSave = _common.GetUGlobalWorkEx().GetMail();
             var newMailId = (ushort)(mailData->elements[mailData->mapNum - 1].Key + 1);
             var newMailIdHash = newMailId & (*(int*)((nint)mailData + 0x48) - 1);
             _context._utils.Log($"new mail ID: 0x{newMailId:X} (hash 0x{newMailIdHash:X})");
@@ -160,7 +160,6 @@ namespace p3rpc.slplus.SocialLink
             _context._memoryMethods.TArray_Insert(&newMailItem.DisableFlags, 268435489);
             _context._memoryMethods.TArray_Insert(&newMailItem.DisableFlags, 0);
             var bMapInsertSuccess = _context._memoryMethods.TMap_InsertNoInit((TMap<HashableInt, FMailIncomingItem>*)&mailIncoming->Data, new HashableInt(newMailId), newMailItem);
-            //_context._utils.Log($"{(nint)(&_common._getUGlobalWork()->Mail):X}");
             _context._utils.Log($"{(nint)(&mailIncoming->Data):X}, {bMapInsertSuccess}");
             return mailIncoming;
         }

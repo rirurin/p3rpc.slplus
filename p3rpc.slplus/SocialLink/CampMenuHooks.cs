@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using static p3rpc.slplus.Messages.MessageHooks;
 using static p3rpc.slplus.SocialLink.SocialLinkManager;
 using static Reloaded.Hooks.Definitions.X64.FunctionAttribute;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace p3rpc.slplus.SocialLink
 {
@@ -280,6 +281,12 @@ namespace p3rpc.slplus.SocialLink
             [FieldOffset(0x0458)] public ACmpMainActor* pMainActor;
             [FieldOffset(0x0460)] public UCmpCommu* pParent;
             //[FieldOffset(0x0468)] public ACmpCommuModelController* pModelController;
+
+            public ICmpMainActor GetMainActor(bool bIsAigis)
+            {
+                if (bIsAigis) { return new nativetypes.Interfaces.Astrea.CmpMainActor((nativetypes.Interfaces.Astrea.ACmpMainActor*)pMainActor); }
+                else { return new CmpMainActor(pMainActor); }
+            }
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 0x550)]
@@ -297,6 +304,11 @@ namespace p3rpc.slplus.SocialLink
             {
                 if (id < 0 || id > 4) return null;
                 fixed (UCmpCommuList* self = &this) { return &((UCmpCommuListVisibleEntries*)((nint)self + 0x1a0))[id]; }
+            }
+            public ICmpMainActor GetMainActor(bool bIsAigis)
+            {
+                if (bIsAigis) { return new nativetypes.Interfaces.Astrea.CmpMainActor((nativetypes.Interfaces.Astrea.ACmpMainActor*)pMainActor); }
+                else { return new CmpMainActor(pMainActor); }
             }
         }
 
@@ -346,6 +358,12 @@ namespace p3rpc.slplus.SocialLink
             [FieldOffset(0x47c)] public float CharDetailBgOffsetX;
             [FieldOffset(0x08B0)] public AUICmpCommu* pParent;
             [FieldOffset(0x08B8)] public ACmpMainActor* pMainActor;
+
+            public ICmpMainActor GetMainActor(bool bIsAigis)
+            {
+                if (bIsAigis) { return new nativetypes.Interfaces.Astrea.CmpMainActor((nativetypes.Interfaces.Astrea.ACmpMainActor*)pMainActor); }
+                else { return new CmpMainActor(pMainActor); }
+            }
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 0x2A0)]
@@ -405,6 +423,11 @@ namespace p3rpc.slplus.SocialLink
             [FieldOffset(0x02C0)] public AAppPropsCore* pCardBp;
             [FieldOffset(0x02C8)] public TArray<IntPtr> pTextures;
             [FieldOffset(0x02D8)] public TArray<IntPtr> pMotions;
+            public ICmpMainActor GetMainActor(bool bIsAigis)
+            {
+                if (bIsAigis) { return new nativetypes.Interfaces.Astrea.CmpMainActor((nativetypes.Interfaces.Astrea.ACmpMainActor*)pMainActor); }
+                else { return new CmpMainActor(pMainActor); }
+            }
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 0xC60)]
@@ -489,7 +512,7 @@ namespace p3rpc.slplus.SocialLink
             var unlockedCmms = &self->pParent->UnlockedCmmEntries;
             float listOpacity = (self->GetListVisibleEntry(0)->Flags != 0) ? self->GetListVisibleEntry(0)->Opacity : 0.0f;
             // list title
-            var commuListTitleLayout = self->pMainActor->OthersLayoutDataTable->GetLayoutDataTableEntry(0x36); // DT_UILayout_CampOthers->COMMU_LIST_TITLE
+            var commuListTitleLayout = self->GetMainActor(_context.bIsAigis).GetOthersLayoutDataTable()->GetLayoutDataTableEntry(0x36); // DT_UILayout_CampOthers->COMMU_LIST_TITLE
             FVector2D commuListTitlePos = (commuListTitleLayout != null) ? commuListTitleLayout->position : new FVector2D(103, -50);
             var listXposAnchor = self->GetListVisibleEntry(0)->Field34 + 83;
             _drawSprDetailedParams.Invoke(campSpr, 0, 0x327, 
@@ -540,7 +563,7 @@ namespace p3rpc.slplus.SocialLink
                     46 + cmmListEntryPos.Y, 0,
                     listColors.GetForegroundColorFromMenu(cmpCommuListMenu, i), drawId, 0, 1, 1, 4, 1
                 );
-                var commuListArcanaName = self->pMainActor->OthersLayoutDataTable->GetLayoutDataTableEntry(6); // DT_UILayout_CampOthers->COMMU_LIST_ARCANA_NAME
+                var commuListArcanaName = self->GetMainActor(_context.bIsAigis).GetOthersLayoutDataTable()->GetLayoutDataTableEntry(6); // DT_UILayout_CampOthers->COMMU_LIST_ARCANA_NAME
                 FVector2D commuListArcanaNamePos = (commuListArcanaName != null) ? commuListArcanaName->position : new FVector2D(94, 8);
                 float commuListArcanaNameSize = (commuListArcanaName != null) ? commuListArcanaName->scale : 0.72f;
                 _drawSprDetailedParams.Invoke(
@@ -567,8 +590,8 @@ namespace p3rpc.slplus.SocialLink
                     slArcanaRankPos.Y + cmmListEntryPos.Y, 0,
                     listColors.GetForegroundColorFromMenu(cmpCommuListMenu, i), drawId, 0, slArcanaRankSize, slArcanaRankSize, 4, 1
                 );
-                var commuListName = self->pMainActor->OthersLayoutDataTable->GetLayoutDataTableEntry(7); // DT_UILayout_CampOthers->COMMU_LIST_NAME_TEXT
-                var commuNameList = self->pMainActor->CommuTextColLayoutDataTable->GetLayoutDataTableEntry(0); // DT_UILayout_CampCommuTextCol->COMMU_NAME_LIST
+                var commuListName = self->GetMainActor(_context.bIsAigis).GetOthersLayoutDataTable()->GetLayoutDataTableEntry(7); // DT_UILayout_CampOthers->COMMU_LIST_NAME_TEXT
+                var commuNameList = self->GetMainActor(_context.bIsAigis).GetCommuTextColLayoutDataTable()->GetLayoutDataTableEntry(0); // DT_UILayout_CampCommuTextCol->COMMU_NAME_LIST
                 FVector2D commuNameListPos = (commuNameList != null) ? commuNameList->position : new FVector2D(0, 0);
                 FVector2D commuListNamePos = (commuListName != null) ? commuListName->position : new FVector2D(0, 0);
                 FString* arcanaName = _context._memoryMethods.FMemory_Malloc<FString>();
@@ -646,8 +669,9 @@ namespace p3rpc.slplus.SocialLink
                 //var uiResources = _context._objectMethods.GetSubsystem<UUIResources>((UGameInstance*)_common._getUGlobalWork());
                 var uiResources = uiResourcesInstance;
                 var commuDetailPosX = self->Field1FC;
-                var commuDetail = self->pMainActor->CommuTextColLayoutDataTable->GetLayoutDataTableEntry(3); // COMMU_DETAIL
-                var commuDetailPosY = self->pMainActor->CommuTextColLayoutDataTable->GetLayoutDataTableEntry(4); // COMMU_DETAIL_POS_Y
+                
+                var commuDetail = self->GetMainActor(_context.bIsAigis).GetCommuTextColLayoutDataTable()->GetLayoutDataTableEntry(3); // COMMU_DETAIL
+                var commuDetailPosY = self->GetMainActor(_context.bIsAigis).GetCommuTextColLayoutDataTable()->GetLayoutDataTableEntry(4); // COMMU_DETAIL_POS_Y
                 if (uiResources != null)
                 {
                     if (currCmd->ArcanaId <= vanillaCmmLimit)
@@ -709,7 +733,7 @@ namespace p3rpc.slplus.SocialLink
                 0x70 => 0x351,
                 0x71 => 0x352,
                 // CMM_16TOWER______NAME_MUTATSU
-                0x72 => _common._getUGlobalWork()->GetBitflag(0x10000289) ? 0x353 : 0x359,
+                0x72 => _common.GetUGlobalWorkEx().GetBitflag(0x10000289) ? 0x353 : 0x359,
                 0x73 => 0x354,
                 0x74 => 0x355,
                 0x75 => 0x356,
@@ -764,8 +788,9 @@ namespace p3rpc.slplus.SocialLink
             // name sprite
             UCmpCommuDetails_DrawNameSprite(self, drawId, campSpr, new FVector(bgXBase, 757, 0));
             // profile help text
-            var commuMemberDetail = self->pMainActor->CommuTextColLayoutDataTable->GetLayoutDataTableEntry(8); // COMMU_MEMBER_DETAIL
-            var commuMemberDetailY = self->pMainActor->CommuTextColLayoutDataTable->GetLayoutDataTableEntry(9); // COMMU_MEMBER_DETAIL_POSY
+            
+            var commuMemberDetail = self->GetMainActor(_context.bIsAigis).GetCommuTextColLayoutDataTable()->GetLayoutDataTableEntry(8); // COMMU_MEMBER_DETAIL
+            var commuMemberDetailY = self->GetMainActor(_context.bIsAigis).GetCommuTextColLayoutDataTable()->GetLayoutDataTableEntry(9); // COMMU_MEMBER_DETAIL_POSY
             if (currCmd->ArcanaId < vanillaCmmLimit)
             {
                 var cmmProfileHelp = (UBmdAsset*)uiResources->GetAssetEntry(0xe); // Community/Help/BMD_CmmProfileHelp
@@ -802,7 +827,7 @@ namespace p3rpc.slplus.SocialLink
             if (self->ArcanaCardId.arr_num > 0)
             {
                 var cardIdInHand = self->ArcanaCardId.GetRef(0);
-                var commuActor = ((UCmpCommu*)self->pMainActor->pCurrentMenu)->Actor_;
+                var commuActor = ((UCmpCommu*)self->GetMainActor(_context.bIsAigis).GetCurrentMenu())->Actor_;
                 if (cardIdInHand->ArcanaId > SocialLinkManager.vanillaCmmLimit)
                 {
                     var customSlId = commuActor->UnlockedCmmEntries.Get<CmmPtr>(commuActor->Menu->ScrollEntryOffset + commuActor->Menu->VisibleEntryOffset)->ArcanaId;
@@ -843,11 +868,11 @@ namespace p3rpc.slplus.SocialLink
         // FUN_1412930d0
         private unsafe bool UGlobalWork_HasMemberJoined(ushort memberId)
         {
-            var gWork = _common._getUGlobalWork();
+            var gWork = _common.GetUGlobalWorkEx();
             return memberId switch
             {
                 1 => true,
-                >= 2 and <= 10 => gWork->GetBitflag(0x3fffffff + (uint)memberId),
+                >= 2 and <= 10 => gWork.GetBitflag(0x3fffffff + (uint)memberId),
                 _ => false
             };
         }
@@ -861,7 +886,7 @@ namespace p3rpc.slplus.SocialLink
                 BoolToInt(UGlobalWork_HasMemberJoined(9)) + // Koromaru
                 BoolToInt(UGlobalWork_HasMemberJoined(6)); // Fuuka
             if (UGlobalWork_HasMemberJoined(10)) // Shinjiro
-                return _common._getUGlobalWork()->GetBitflag(0x6f) 
+                return _common.GetUGlobalWorkEx().GetBitflag(0x6f) 
                     ? foolBustupId + 1 : foolBustupId; // EVT_ARAGAKI_OUT
             return foolBustupId + 1;
         }

@@ -13,6 +13,7 @@ using Reloaded.Hooks.Definitions;
 using p3rpc.nativetypes.Interfaces;
 using p3rpc.classconstructor.Interfaces;
 using Unreal.AtlusScript.Interfaces;
+using riri.globalredirector.Interfaces;
 
 namespace p3rpc.slplus
 {
@@ -23,15 +24,19 @@ namespace p3rpc.slplus
 
         public IMemoryMethods _memoryMethods { get; init; }
         public IAtlusAssets _atlusAssets { get; init; }
+        public IRedirectorApi _redirector { get; init; }
+        public bool bIsAigis { get; init; }
 
         public SocialLinkContext(long baseAddress, IConfigurable config, ILogger logger, IStartupScanner startupScanner, IReloadedHooks hooks, string modLocation, Utils utils, Memory memory, 
-            ISharedScans sharedScans, string modName, IClassMethods classMethods, IObjectMethods objectMethods, IMemoryMethods memoryMethods, IAtlusAssets atlusAssets)
+            ISharedScans sharedScans, string modName, IClassMethods classMethods, IObjectMethods objectMethods, IMemoryMethods memoryMethods, IAtlusAssets atlusAssets, IRedirectorApi redirector, bool _bIsAigis)
             : base(baseAddress, config, logger, startupScanner, hooks, modLocation, utils, memory, sharedScans, classMethods, objectMethods)
         {
             _config = (Config)config;
             _memoryMethods = memoryMethods;
             ModName = modName;
             _atlusAssets = atlusAssets;
+            _redirector = redirector;
+            bIsAigis = _bIsAigis;
         }
 
         public override void OnConfigUpdated(IConfigurable newConfig) => _config = (Config)newConfig;

@@ -3,6 +3,7 @@ using p3rpc.nativetypes.Interfaces;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Hooks.Definitions.Enums;
 using Reloaded.Hooks.Definitions.X64;
+using static p3rpc.slplus.Field.NewLevelRegistry;
 
 namespace p3rpc.slplus.Hooking
 {
@@ -16,6 +17,8 @@ namespace p3rpc.slplus.Hooking
         public unsafe delegate void UAssetLoader_LoadRequestedAssets(UAssetLoader* self);
 
         private string UAssetLoader_CheckStreamedAssets_SIG = "49 8D 4F ?? 48 89 5C 24 ?? 48 8D 54 24 ??";
+        private string UAssetLoader_CheckStreamedAssets_SIG_EpAigis = "49 8D 0C ?? 48 89 5C 24 ?? 48 8D 54 24 ??";
+        private MultiSignature CheckStreamedAssetsMS;
         private IAsmHook _checkStreamedAssets;
         private IReverseWrapper<UAssetLoader_CheckStreamedAssets> _checkStreameedAssetsWrapper;
         [Function(FunctionAttribute.Register.r15, FunctionAttribute.Register.rax, false)]
@@ -36,7 +39,24 @@ namespace p3rpc.slplus.Hooking
         {
             //_context._utils.SigScan(UAssetLoader_LoadRequestedAssets_SIG, "UAssetLoader::LoadRequestedAssets", _context._utils.GetDirectAddress,
             //    addr => _loadRequestedAssets = _context._utils.MakeHooker<UAssetLoader_LoadRequestedAssets>(UAssetLoader_LoadRequestedAssetsImpl, addr));
-
+            CheckStreamedAssetsMS = new MultiSignature();
+            _context._utils.MultiSigScan(
+                new[] { UAssetLoader_CheckStreamedAssets_SIG, UAssetLoader_CheckStreamedAssets_SIG_EpAigis },
+                "UAssetLoader::CheckStreamedAssets", _context._utils.GetDirectAddress,
+                addr =>
+                {
+                    string[] function =
+                    {
+                        "use64",
+                        $"{_context._utils.PreserveMicrosoftRegisters()}",
+                        $"{_context._hooks.Utilities.GetAbsoluteCallMnemonics(UAssetLoader_CheckStreamedAssetsImpl, out _checkStreameedAssetsWrapper)}",
+                        $"{_context._utils.RetrieveMicrosoftRegisters()}",
+                    };
+                    _checkStreamedAssets = _context._hooks.CreateAsmHook(function, addr, AsmHookBehaviour.ExecuteFirst).Activate();
+                },
+                CheckStreamedAssetsMS
+            );
+            /*
             _context._utils.SigScan(UAssetLoader_CheckStreamedAssets_SIG, "UAssetLoader::CheckStreamedAssets", _context._utils.GetDirectAddress, addr =>
             {
                 string[] function =
@@ -48,7 +68,7 @@ namespace p3rpc.slplus.Hooking
                 };
                 _checkStreamedAssets = _context._hooks.CreateAsmHook(function, addr, AsmHookBehaviour.ExecuteFirst).Activate();
             });
-
+            */
             _context._utils.SigScan(UAssetLoader_LoadTargetAsset_SIG, "UAssetLoader::LoadTargetAsset", _context._utils.GetDirectAddress,
                 addr => _loadTargetAsset = _context._utils.MakeWrapper<UAssetLoader_LoadTargetAsset>(addr));
 

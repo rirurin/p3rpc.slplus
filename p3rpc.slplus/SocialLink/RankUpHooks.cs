@@ -286,7 +286,7 @@ namespace p3rpc.slplus.SocialLink
             }
             if (_manager.cmmIndexToSlHash.TryGetValue(socialLinkNo, out var slHash) && _manager.activeSocialLinks.TryGetValue(slHash, out var customSl))
             {
-                var cmmWork = _common._getUGlobalWork()->pCommunityWork;
+                var cmmWork = _common.GetUGlobalWorkEx().GetCommunityWork();
                 if (customSl.RankUpName != null)
                 {
                     var customCmm = &((CustomCmmData*)(cmmWork + 1))[socialLinkNo - vanillaCmmLimit - 1];

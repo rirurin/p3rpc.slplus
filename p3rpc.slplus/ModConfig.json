@@ -117,6 +117,7 @@
     "p3rpc.classconstructor",
     "p3rpc.essentials",
     "p3rpc.nativetypes",
+    "riri.globalredirector",
     "Reloaded.Memory.SigScan.ReloadedII",
     "reloaded.sharedlib.hooks",
     "SharedScans.Reloaded",

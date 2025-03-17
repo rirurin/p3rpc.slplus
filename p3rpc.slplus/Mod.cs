@@ -11,9 +11,11 @@ using p3rpc.slplus.Modules;
 using p3rpc.slplus.SocialLink;
 using p3rpc.slplus.Template;
 using Reloaded.Hooks.ReloadedII.Interfaces;
+using Reloaded.Memory.Sigscan.Definitions;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 using Reloaded.Mod.Interfaces.Internal;
+using riri.globalredirector.Interfaces;
 using SharedScans.Interfaces;
 using System.Diagnostics;
 using Unreal.AtlusScript.Interfaces;
@@ -67,12 +69,13 @@ namespace p3rpc.slplus
             _owner = context.Owner;
             _configuration = context.Configuration;
             _modConfig = context.ModConfig;
-
+#if DEBUG
             //Debugger.Launch();
+#endif
 
-            var process = Process.GetCurrentProcess().MainModule;
-            if (process == null) throw new Exception($"[{_modConfig.ModName}] Process is null");
-            var baseAddress = process.BaseAddress;
+            var process = Process.GetCurrentProcess();
+            if (process == null || process.MainModule == null) throw new Exception($"[{_modConfig.ModName}] Process is null");
+            var baseAddress = process.MainModule.BaseAddress;
             if (_hooks == null) throw new Exception($"[{_modConfig.ModName}] Could not get controller for Reloaded hooks");
             var startupScanner = GetDependency<IStartupScanner>("Reloaded Startup Scanner");
             var sharedScans = GetDependency<ISharedScans>("Shared Scans");
@@ -81,19 +84,43 @@ namespace p3rpc.slplus
             var classMethods = GetDependency<IClassMethods>("Class Constructor (Class Methods)");
             var objectMethods = GetDependency<IObjectMethods>("Class Constructor (Object Methods)");
             var atlusAssets = GetDependency<IAtlusAssets>("Unreal Atlus Script");
+            var redirectorApi = GetDependency<IRedirectorApi>("Global Redirector");
+
+            // Check what version of the game is being used
+
+            var scannerFactory = GetDependency<IScannerFactory>("Scanner Factory");
+            var scanner = scannerFactory.CreateScanner(process, process.MainModule);
+            var res = scanner.FindPattern("48 8B C4 48 89 48 ?? 55 41 54 48 8D 68 ?? 48 81 EC 48 01 00 00");
+            bool bIsAigis = false;
+            if (!res.Found)
+            {
+                _logger.WriteLine("Error! Couldn't find the pattern for UAppCharacterComp::Update! We'll assume that this is Episode Aigis.", System.Drawing.Color.Red);
+                bIsAigis = true;
+            }
+            unsafe
+            {
+                if (*(byte*)(baseAddress + res.Offset + 0x254) == 0x75)
+                {
+                    _logger.WriteLine("Set hooks to use Episode Aigis.");
+                    bIsAigis = true;
+                }
+            }
 
             Utils utils = new(startupScanner, _logger, _hooks, baseAddress, _modConfig.ModName, System.Drawing.Color.PaleTurquoise, _configuration.LogLevel);
             _context = new(
                 baseAddress, _configuration, _logger, startupScanner, _hooks, 
                 _modLoader.GetDirectoryForModId(_modConfig.ModId), utils, 
                 new Reloaded.Memory.Memory(), sharedScans, _modConfig.ModId, 
-                classMethods, objectMethods, memoryMethods, atlusAssets);
+                classMethods, objectMethods, memoryMethods, atlusAssets,
+                redirectorApi, bIsAigis);
             _runtime = new(_context);
+            
             _runtime.AddModule<Core>();
             _runtime.AddModule<CommonHooks>();
+            _runtime.AddModule<SocialLinkUtilities>();
+            
             _runtime.AddModule<SocialLinkManager>();
             _runtime.AddModule<CommunityHooks>();
-            _runtime.AddModule<SocialLinkUtilities>();
             _runtime.AddModule<CampMenuHooks>();
             _runtime.AddModule<VelvetRoomHooks>();
             _runtime.AddModule<AssetLoader>();
@@ -101,13 +128,14 @@ namespace p3rpc.slplus
             _runtime.AddModule<RankUpHooks>();
             _runtime.AddModule<MailService>();
             _runtime.AddModule<NpcService>();
-
             _runtime.AddModule<EvtPreDataService>();
             _runtime.AddModule<FldNpcActorHooks>();
             _runtime.AddModule<NewLevelRegistry>();
+            
             _runtime.RegisterModules();
 
-            _modLoader.AddOrReplaceController<ICommuListColors>(_owner, _runtime.GetModule<CampMenuHooks>().listColors);
+            var camp = _runtime.TryGetModule<CampMenuHooks>();
+            if (camp != null) { _modLoader.AddOrReplaceController<ICommuListColors>(_owner, camp.listColors); }
 
             _modLoader.OnModLoaderInitialized += OnLoaderInit;
             _modLoader.ModLoading += OnModLoading;
@@ -130,8 +158,10 @@ namespace p3rpc.slplus
         private void OnModLoading(IModV1 mod, IModConfigV1 conf)
         {
             if (!conf.ModDependencies.Contains(_modConfig.ModId)) return;
-            _runtime.GetModule<EvtPreDataService>().OnModLoaded(_modLoader.GetDirectoryForModId(conf.ModId));
-            _runtime.GetModule<SocialLinkManager>().OnModLoaded(_modLoader.GetDirectoryForModId(conf.ModId), conf.ModId);
+            var service = _runtime.TryGetModule<EvtPreDataService>();
+            if (service != null) {  service.OnModLoaded(_modLoader.GetDirectoryForModId(conf.ModId)); }
+            var manager = _runtime.TryGetModule<SocialLinkManager>();
+            if (manager != null) { manager.OnModLoaded(_modLoader.GetDirectoryForModId(conf.ModId), conf.ModId); }
         }
 
         #region Standard Overrides
