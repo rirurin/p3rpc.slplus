@@ -14,6 +14,7 @@ namespace p3rpc.slplus.SocialLink
     {
         private string UUICombineCalc_CalculateSocialLinkExpBonus_SIG = "48 89 5C 24 ?? 48 89 6C 24 ?? 57 48 83 EC 20 48 8B EA 48 8B F9 E8 ?? ?? ?? ?? 48 8B D8 48 85 C0";
         private string UUICombineCalc_CalculateSocialLinkExpBonus_SIG_EpAigis = "48 89 5C 24 ?? 56 48 83 EC 20 48 8B DA 48 8B F1 E8 ?? ?? ?? ?? 84 C0 0F 85 ?? ?? ?? ??";
+        private MultiSignature CalculateSocialLinkExpBonusMS;
         private IHook<UUICombineCalc_CalculateSocialLinkExpBonus> _calcSocialLinkBonus;
         public unsafe delegate long UUICombineCalc_CalculateSocialLinkExpBonus(UUICombineCalc* self, FDatUnitPersonaEntry* persona);
 
@@ -27,6 +28,7 @@ namespace p3rpc.slplus.SocialLink
 
         private string UDatSkill_Instance_SIG = "48 89 05 ?? ?? ?? ?? EB ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 75 ??";
         private string UDatSkill_Instance_SIG_EpAigis = "48 89 05 ?? ?? ?? ?? EB ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 74 ?? 4C 39 70 ?? 75 ??";
+        private string UDatSkill_Instance_SIG_EpAigisNew = "E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 75 ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 75 ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 75 ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 75 ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 75 ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 75 ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 75 ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 85 C0";
         private MultiSignature DatSkillInstanceMS;
         private unsafe UDatSkill** _datSkill;
 
@@ -51,15 +53,31 @@ namespace p3rpc.slplus.SocialLink
 
         public unsafe VelvetRoomHooks(SocialLinkContext context, Dictionary<string, ModuleBase<SocialLinkContext>> modules) : base(context, modules)
         {
-            _context._utils.SigScan(UUICombineCalc_CalculateSocialLinkExpBonus_SIG, "UUICombineCalc::CalculateSocialLinkExpBonus", _context._utils.GetDirectAddress,
-                addr => _calcSocialLinkBonus = _context._utils.MakeHooker<UUICombineCalc_CalculateSocialLinkExpBonus>(UUICombineCalc_CalculateSocialLinkExpBonusImpl, addr));
+            _context._utils.CreateAdvancedMultiSignature(new List<AdvancedMultiSignatureEntry> {
+                new(UDatSkill_Instance_SIG, () => true, _context._utils.GetIndirectAddressLong, addr => _datSkill = (UDatSkill**)addr),
+                new(UDatSkill_Instance_SIG_EpAigisNew, () => true, x =>
+                {
+                    var outerAddress = _context._utils.GetIndirectAddressShort(x);
+                    var innerThunk = _context._utils.GetIndirectAddressShort((int)(outerAddress - (nuint)_context._baseAddress + 0x5c));
+                    var inner = _context._utils.GetIndirectAddressShort((int)(innerThunk - (nuint)_context._baseAddress));
+                    var result = _context._utils.GetIndirectAddressLong((int)(inner - (nuint)_context._baseAddress + 0xa));
+                    return result;
+                }, addr => _datSkill = (UDatSkill**)addr),
+            }, "UDatSkill::Instance");
+            CalculateSocialLinkExpBonusMS = new MultiSignature();
+            _context._utils.MultiSigScan(
+                new[] { UUICombineCalc_CalculateSocialLinkExpBonus_SIG, UUICombineCalc_CalculateSocialLinkExpBonus_SIG_EpAigis },
+                "UUICombineCalc::CalculateSocialLinkExpBonus", _context._utils.GetDirectAddress,
+                addr => _calcSocialLinkBonus = _context._utils.MakeHooker<UUICombineCalc_CalculateSocialLinkExpBonus>(UUICombineCalc_CalculateSocialLinkExpBonusImpl, addr),
+                CalculateSocialLinkExpBonusMS
+            );
 
             _context._utils.SigScan(FDatUnitPersona_CalculateBonusExp_SIG, "FDatUnitPersona::CalculateBonusExp", _context._utils.GetDirectAddress, addr => _calcBonusExp = _context._utils.MakeWrapper<FDatUnitPersona_CalculateBonusExp>(addr));
 
             _context._utils.SigScan(UUICombineCalc_CalculateResummonCost_SIG, "UUICombineCalc::CalculateResummonCost", _context._utils.GetDirectAddress,
                 addr => _calcResummonCost = _context._utils.MakeHooker<UUICombineCalc_CalculateResummonCost>(UUICombineCalc_CalculateResummonCostImpl, addr));
 
-            _context._utils.SigScan(UDatSkill_Instance_SIG, "UDatSkill::Instance", _context._utils.GetIndirectAddressLong, addr => _datSkill = (UDatSkill**)addr);
+            //_context._utils.SigScan(UDatSkill_Instance_SIG, "UDatSkill::Instance", _context._utils.GetIndirectAddressLong, addr => _datSkill = (UDatSkill**)addr);
             _context._utils.SigScan(UDatPersona_Instance_SIG, "UDatPersona::Instance", _context._utils.GetIndirectAddressLong, addr => _datPersona = (UDatPersona**)addr);
 
             _context._utils.SigScan(APersonaStatus_SetSocialLinkBonus_SIG, "APersonaStatus::SetSocialLinkBonus", _context._utils.GetDirectAddress,

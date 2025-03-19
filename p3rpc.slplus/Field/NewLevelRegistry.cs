@@ -37,6 +37,7 @@ namespace p3rpc.slplus.Field
         public unsafe delegate void UGameplayStatics_LoadStreamLevel(UObject* WorldContextObject, FName Name, bool bMakeVisibleAfterLoad, bool bShouldBlockOnLoad, nint LatentInfo);
         private IHook<UGameplayStatics_LoadStreamLevel> _loadStreamingLevel;
 
+            /*
         private string GetNpcExistTables_TableArrayEntries_SIG = "48 8D 35 ?? ?? ?? ?? 44 89 F5 44 89 74 24 ??";
         private string GetNpcExistTables_TableArrayEntrySize_SIG = "83 FD 08 0F 82 ?? ?? ?? ?? 48 8B 8C 24 ?? ?? ?? ??";
         private string GetNpcExistTables_TableArrayEntrySize_SIG_EpAigis = "83 FD 0B 0F 82 ?? ?? ?? ?? 48 8B 8C 24 ?? ?? ?? ??";
@@ -48,7 +49,6 @@ namespace p3rpc.slplus.Field
         private unsafe FldNpcExistTableEntry* ExtendedExistTables;
         public unsafe void GetNpcExistTablesImpl(nint a1, nint a2)
         {
-
             if (ExtendedExistTables == null)
             {
                 ExtendedExistTables = _context._redirector.MoveGlobal<FldNpcExistTableEntry>(null, "GetNpcExistTables_TableArrayEntries", 9);
@@ -61,6 +61,7 @@ namespace p3rpc.slplus.Field
             }
             _getNpcExistTables.OriginalFunction(a1, a2);
         }
+            */
 
         [StructLayout(LayoutKind.Explicit, Size = 0x10)]
         public unsafe struct FldNpcExistTableEntry
@@ -148,8 +149,9 @@ namespace p3rpc.slplus.Field
             //    addr => _loadStreamingLevel = _context._utils.MakeHooker<UGameplayStatics_LoadStreamLevel>(UGameplayStatics_LoadStreamLevelImpl, addr));
             _context._utils.SigScan(ULevelStreaming_SetShouldBeVisible_SIG, " ULevelStreaming::SetShouldBeVisible", _context._utils.GetDirectAddress,
                 addr => _setShouldBeVisible = _context._utils.MakeWrapper<ULevelStreaming_SetShouldBeVisible>(addr));
-            _context._redirector.AddTargetRaw("GetNpcExistTables_TableArrayEntries", sizeof(FldNpcExistTableEntry) * 0xb, GetNpcExistTables_TableArrayEntries_SIG,
-                x => _context._utils.GetIndirectAddressLong(x));
+            //_context._redirector.AddTargetRaw("GetNpcExistTables_TableArrayEntries", sizeof(FldNpcExistTableEntry) * 0xb, GetNpcExistTables_TableArrayEntries_SIG,
+            //    x => _context._utils.GetIndirectAddressLong(x));
+            /*
             GetNpcExistTablesMS = new MultiSignature();
             _context._utils.MultiSigScan(
                 new[] { GetNpcExistTables_TableArrayEntrySize_SIG, GetNpcExistTables_TableArrayEntrySize_SIG },
@@ -161,6 +163,7 @@ namespace p3rpc.slplus.Field
             );
             _context._utils.SigScan(GetNpcExistTables_SIG, "GetNpcExistTables", _context._utils.GetDirectAddress,
                 addr => _getNpcExistTables = _context._utils.MakeHooker<GetNpcExistTables>(GetNpcExistTablesImpl, addr));
+            */
             /*
             _existTableEntry = (FldNpcExistTableEntry*)NativeMemory.AllocZeroed((nuint)(sizeof(FldNpcExistTableEntry) * 9));
             for (int i = 0; i < 8; i++)

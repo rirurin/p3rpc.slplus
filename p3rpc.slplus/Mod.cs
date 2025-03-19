@@ -84,7 +84,7 @@ namespace p3rpc.slplus
             var classMethods = GetDependency<IClassMethods>("Class Constructor (Class Methods)");
             var objectMethods = GetDependency<IObjectMethods>("Class Constructor (Object Methods)");
             var atlusAssets = GetDependency<IAtlusAssets>("Unreal Atlus Script");
-            var redirectorApi = GetDependency<IRedirectorApi>("Global Redirector");
+            //var redirectorApi = GetDependency<IRedirectorApi>("Global Redirector");
 
             // Check what version of the game is being used
 
@@ -112,7 +112,8 @@ namespace p3rpc.slplus
                 _modLoader.GetDirectoryForModId(_modConfig.ModId), utils, 
                 new Reloaded.Memory.Memory(), sharedScans, _modConfig.ModId, 
                 classMethods, objectMethods, memoryMethods, atlusAssets,
-                redirectorApi, bIsAigis);
+                bIsAigis);
+            //redirectorApi, bIsAigis);
             _runtime = new(_context);
             
             _runtime.AddModule<Core>();
