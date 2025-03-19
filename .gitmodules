@@ -1,9 +1,0 @@
-[submodule "include\\SharedScans"]
-	path = include\\SharedScans
-	url = https://github.com/rirurin/SharedScans.git
-[submodule "include\\Unreal.AtlusScript"]
-	path = include\\Unreal.AtlusScript
-	url = https://github.com/MirrorTuneZM/Unreal.AtlusScript.git
-[submodule "include/ObjectsEmitter"]
-	path = include/ObjectsEmitter
-	url = https://github.com/MirrorTuneZM/Unreal.ObjectsEmitter.git

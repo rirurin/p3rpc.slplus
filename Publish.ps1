@@ -162,7 +162,7 @@ param (
     $UseScriptDirectory=$True,
 
     ## => User Config <= ## 
-    $ProjectPath = "p3rpc.slplus.csproj",
+    $ProjectPath = "p3rpc.slplus/p3rpc.slplus.csproj",
     $PackageName = "p3rpc.slplus",
     $PublishOutputDir = "Publish/ToUpload",
 
@@ -406,3 +406,15 @@ Write-Host "Upload the files in folder `"$PublishOutputDir`" to respective locat
 if ($UseScriptDirectory) {
     Pop-Location
 }
+
+# Publish interface
+$InterfaceProjectPath = "p3rpc.slplus.Interfaces/p3rpc.slplus.Interfaces.csproj"
+$InterfacePublishBuildDirectory = "Publish/Interface"
+
+Remove-Item $InterfacePublishBuildDirectory -Recurse -ErrorAction SilentlyContinue
+New-Item $InterfacePublishBuildDirectory -ItemType Directory -ErrorAction SilentlyContinue
+
+dotnet restore $InterfaceProjectPath
+dotnet clean $InterfaceProjectPath
+
+dotnet publish $InterfaceProjectPath -c Release --self-contained false -o "$InterfacePublishBuildDirectory" /p:OutputPath="..\$InterfacePublishBuildDirectory"

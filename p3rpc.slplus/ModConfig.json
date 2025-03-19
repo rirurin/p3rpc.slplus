@@ -76,6 +76,15 @@
           },
           "ReleaseMetadataName": "Sewer56.Update.ReleaseMetadata.json"
         },
+        "riri.globalredirector": {
+          "Config": {
+            "UserName": "Rirurin",
+            "RepositoryName": "riri.globalredirector",
+            "UseReleaseTag": true,
+            "AssetFileName": "Mod.zip"
+          },
+          "ReleaseMetadataName": "riri.globalredirector.ReleaseMetadata.json"
+        },
         "UnrealEssentials": {
           "Config": {
             "UserName": "AnimatedSwine37",
