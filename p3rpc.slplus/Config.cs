@@ -7,21 +7,6 @@ namespace p3rpc.slplus.Configuration
 {
     public class Config : Configurable<Config>
     {
-        [DisplayName("X")]
-        [DefaultValue(0)]
-        public int Xoffset { get; set; } = 0; // 284
-
-        [DisplayName("Y")]
-        [DefaultValue(0)]
-        public int Yoffset { get; set; } = 0; // 106
-
-        [DisplayName("DrawPoint")]
-        [DefaultValue(0)]
-        public uint DrawPoint { get; set; } = 0;
-
-        [DisplayName("Description Debug")]
-        [DefaultValue(false)]
-        public bool ShowOriginalDescription { get; set; } = false;
 
         [DisplayName("Log Level")]
         [DefaultValue(LogLevel.Information)]

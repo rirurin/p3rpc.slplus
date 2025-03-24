@@ -654,11 +654,6 @@ namespace p3rpc.slplus.SocialLink
 
         private unsafe void UCmpCommuDetails_SocialLinkDrawDescriptionImpl(UCmpCommuDetails* self, int drawId)
         {
-            if (_context._config.ShowOriginalDescription)
-            {
-                _slDrawDescription.OriginalFunction(self, drawId);
-                return;
-            }
             var cmmMenu = self->pParent->Menu;
             var currCmd = self->pParent->UnlockedCmmEntries.Get<CmmPtr>(cmmMenu->VisibleEntryOffset + cmmMenu->ScrollEntryOffset);
             if (currCmd != null)

@@ -2,7 +2,7 @@
   "ModId": "p3rpc.slplus",
   "ModName": "Social Links Plus",
   "ModAuthor": "Rirurin",
-  "ModVersion": "1.0.0",
+  "ModVersion": "1.0.2",
   "ModDescription": "Add extra social link functionality, including adding new social links",
   "ModDll": "p3rpc.slplus.dll",
   "ModIcon": "Preview.png",

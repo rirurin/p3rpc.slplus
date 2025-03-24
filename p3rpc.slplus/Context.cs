@@ -26,6 +26,7 @@ namespace p3rpc.slplus
         public IAtlusAssets _atlusAssets { get; init; }
         //public IRedirectorApi _redirector { get; init; }
         public bool bIsAigis { get; init; }
+        public bool bIsSteam { get; set; }
 
         public SocialLinkContext(long baseAddress, IConfigurable config, ILogger logger, IStartupScanner startupScanner, IReloadedHooks hooks, string modLocation, Utils utils, Memory memory, 
             ISharedScans sharedScans, string modName, IClassMethods classMethods, IObjectMethods objectMethods, IMemoryMethods memoryMethods, IAtlusAssets atlusAssets, /*IRedirectorApi redirector,*/ bool _bIsAigis)
@@ -37,6 +38,7 @@ namespace p3rpc.slplus
             _atlusAssets = atlusAssets;
             //_redirector = redirector;
             bIsAigis = _bIsAigis;
+            bIsSteam = true;
         }
 
         public override void OnConfigUpdated(IConfigurable newConfig) => _config = (Config)newConfig;
