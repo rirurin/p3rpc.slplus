@@ -327,7 +327,11 @@ namespace p3rpc.slplus.SocialLink
             } else
             {
                 if (cmmIndexToSlHash.TryGetValue(id, out var slHash) && activeSocialLinks.TryGetValue(slHash, out var customSl))
-                    _utils.MakeFStringFromExisting(nameOut, customSl.NameKnown);
+                {
+                    var NameToUse = customSl.CommuName; 
+                    if (NameToUse == null) { NameToUse = customSl.NameKnown; }
+                    _utils.MakeFStringFromExisting(nameOut, NameToUse);
+                }
                 else
                     _utils.MakeFStringFromExisting(nameOut, $"CMM {id}");
             }

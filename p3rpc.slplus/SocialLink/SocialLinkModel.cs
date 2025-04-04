@@ -2,6 +2,7 @@
 {
     public class SocialLinkModel
     {
+        public string CommuName { get; set; }
         public string NameUnknown { get; set; }
         public string NameKnown { get; set; }
         public string Arcana { get; set; }

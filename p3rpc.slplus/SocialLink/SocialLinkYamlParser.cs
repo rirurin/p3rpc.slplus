@@ -12,6 +12,7 @@ namespace p3rpc.slplus.SocialLink
 
         public SocialLinkYamlParserRoot() : base()
         {
+            ValueParsers.Add("CommuName", ReadCommuName);
             ValueParsers.Add("NameUnknown", ReadNameUnknown);
             ValueParsers.Add("NameKnown", ReadNameKnown);
             ValueParsers.Add("Arcana", ReadArcana);
@@ -22,7 +23,7 @@ namespace p3rpc.slplus.SocialLink
             ValueParsers.Add("RankUpName", ReadRankUpName);
             ValueParsers.Add("MailText", ReadMailText);
         }
-
+        private void ReadCommuName(IParser parser, SocialLinkModel data) => data.CommuName = parser.Consume<Scalar>().Value;
         private void ReadNameUnknown(IParser parser, SocialLinkModel data) => data.NameUnknown = parser.Consume<Scalar>().Value;
         private void ReadNameKnown(IParser parser, SocialLinkModel data) => data.NameKnown = parser.Consume<Scalar>().Value;
         private SocialLinkArcana ArcanaNameToId(string arcanaName)
